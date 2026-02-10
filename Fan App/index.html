@@ -32,14 +32,50 @@ section{padding:16px}
 </section>
 
 <script>
-window.addEventListener("message", (e) => {
-  if (!e.data || e.data.type !== "BASE_UPDATE") return;
+/*
+  Base Fan App — V1 (Static Hosting Correct)
+  Source of truth: ./content.json
+  Update method: pull + apply
+*/
 
-  const d = e.data.payload;
+const CONTENT_URL = "./content.json";
+const POLL_INTERVAL = 15000; // 15s
 
-  document.getElementById("name").textContent = d.name;
-  document.getElementById("bio").textContent = d.bio;
+function applyState(d){
+  if (!d) return;
+
+  document.getElementById("name").textContent = d.name || "";
+  document.getElementById("bio").textContent  = d.bio || "";
   document.getElementById("live").textContent = d.live ? "LIVE" : "OFFLINE";
+}
+
+async function fetchState(){
+  const url = new URL(CONTENT_URL, location.href);
+  url.searchParams.set("ts", Date.now()); // cache bust
+
+  const res = await fetch(url.toString(), { cache:"no-store" });
+  if (!res.ok) throw new Error("Failed to load content.json");
+  return res.json();
+}
+
+async function tick(){
+  try{
+    const state = await fetchState();
+    applyState(state);
+  }catch(e){
+    // silent fail (V1)
+  }
+}
+
+// initial load
+tick();
+
+// poll
+setInterval(tick, POLL_INTERVAL);
+
+// refresh on tab focus
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) tick();
 });
 </script>
 </body>
