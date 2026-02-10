@@ -1,16 +1,24 @@
-/* BASE Creator Dashboard — V1
+/* BASE Creator Dashboard — V1 (NO DRIFT)
+   Model (LOCKED):
+   {
+     "name": "Creator Name",
+     "bio": "This is my home on the web.",
+     "links": [ { "label": "...", "url": "..." } ]
+   }
+
    - Reads Fan App/content.json (public URL)
-   - Publishes updates by committing Fan App/content.json via GitHub API (authority gate = token)
+   - Publishes by committing Fan App/content.json via GitHub API (authority gate = token)
    - No backend. GitHub Pages limit respected.
 */
+
 (() => {
-  // ===== CONFIG (locked to your repo) =====
+  // ===== LOCKED REPO CONFIG =====
   const OWNER = "soliddreamz";
   const REPO = "Base-Creator-Land";
   const BRANCH = "main";
   const TARGET_PATH = "Fan App/content.json"; // exact repo path (space matters)
 
-  // Fan App content.json public URL (for reading)
+  // Read URL (public)
   const DEFAULT_CONTENT_URL = `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
 
   // ===== DOM =====
@@ -23,22 +31,20 @@
     btnLoad: $("btnLoad"),
     btnPublish: $("btnPublish"),
     btnResetToken: $("btnResetToken"),
-    isLive: $("isLive"),
-    liveTitle: $("liveTitle"),
-    streamUrl: $("streamUrl"),
-    announcement: $("announcement"),
-    theme: $("theme"),
-    archive: $("archive"),
+
+    name: $("name"),
+    bio: $("bio"),
+    links: $("links"),
+
     preview: $("preview"),
     status: $("status"),
     lastSha: $("lastSha"),
-    livePill: $("livePill"),
+    statePill: $("statePill"),
   };
 
   // ===== STATE =====
   const LS_TOKEN = "base_creator_token_v1";
   let lastRemoteSha = null;
-  let lastLoadedJson = null;
 
   // ===== HELPERS =====
   function log(line) {
@@ -47,8 +53,8 @@
   }
 
   function setPill(type, text) {
-    el.livePill.className = `pill ${type}`;
-    el.livePill.textContent = text;
+    el.statePill.className = `pill ${type}`;
+    el.statePill.textContent = text;
   }
 
   function safeJsonParse(s) {
@@ -56,58 +62,13 @@
     catch (e) { return { ok: false, error: e }; }
   }
 
-  function buildDraft() {
-    // Controlled shape. (No raw file editing.)
-    const draft = {
-      isLive: el.isLive.value === "true",
-      liveTitle: (el.liveTitle.value || "").trim(),
-      streamUrl: (el.streamUrl.value || "").trim(),
-      announcement: (el.announcement.value || "").trim(),
-      theme: (el.theme.value || "").trim(),
-    };
-
-    // Optional archive array from textarea (must be valid JSON array or empty)
-    const archRaw = (el.archive.value || "").trim();
-    if (archRaw) {
-      const parsed = safeJsonParse(archRaw);
-      if (!parsed.ok || !Array.isArray(parsed.value)) {
-        throw new Error("archive must be valid JSON ARRAY (or empty).");
-      }
-      draft.archive = parsed.value;
-    } else {
-      // keep absent (clean)
-    }
-
-    // Remove empty strings for cleanliness
-    Object.keys(draft).forEach((k) => {
-      if (typeof draft[k] === "string" && draft[k] === "") delete draft[k];
-    });
-
-    return draft;
-  }
-
-  function refreshPreview() {
-    try {
-      const draft = buildDraft();
-      el.preview.value = JSON.stringify(draft, null, 2);
-      if (draft.isLive) setPill("ok", "STATUS: LIVE = true");
-      else setPill("warn", "STATUS: LIVE = false");
-      return true;
-    } catch (e) {
-      el.preview.value = `// Preview error: ${e.message}`;
-      setPill("bad", "STATUS: invalid input");
-      return false;
-    }
-  }
-
   function requireToken() {
     const token = (el.token.value || "").trim();
-    if (!token) throw new Error("Missing creator token. (Authority gate)");
+    if (!token) throw new Error("Missing creator token (authority gate).");
     return token;
   }
 
   function ghHeaders(token) {
-    // Fine-grained PAT works with "Bearer"
     return {
       "Accept": "application/vnd.github+json",
       "Authorization": `Bearer ${token}`,
@@ -117,15 +78,68 @@
   }
 
   function toBase64Utf8(str) {
-    // Proper UTF-8 base64
-    const utf8 = new TextEncoder().encode(str);
+    const bytes = new TextEncoder().encode(str);
     let bin = "";
-    utf8.forEach((b) => bin += String.fromCharCode(b));
+    for (const b of bytes) bin += String.fromCharCode(b);
     return btoa(bin);
   }
 
+  function normalizeLinks(value) {
+    // Accepts: empty => []
+    // Accepts: JSON array of objects with label/url strings.
+    const raw = (value || "").trim();
+    if (!raw) return [];
+
+    const parsed = safeJsonParse(raw);
+    if (!parsed.ok || !Array.isArray(parsed.value)) {
+      throw new Error("links must be valid JSON ARRAY (or empty).");
+    }
+
+    // sanitize
+    const cleaned = parsed.value.map((item) => {
+      const label = (item?.label ?? "").toString().trim();
+      const url = (item?.url ?? "").toString().trim();
+      const out = {};
+      if (label) out.label = label;
+      if (url) out.url = url;
+      return out;
+    }).filter((x) => x.label || x.url);
+
+    return cleaned;
+  }
+
+  function buildDraft() {
+    const name = (el.name.value || "").trim();
+    const bio  = (el.bio.value || "").trim();
+    const links = normalizeLinks(el.links.value);
+
+    // LOCKED shape: only these keys
+    const draft = { name, bio, links };
+
+    // Keep strings even if empty? Your original file had all keys.
+    // We'll preserve keys, but keep them as empty strings if user cleared them.
+    // links always an array.
+    return draft;
+  }
+
+  function refreshPreview() {
+    try {
+      const draft = buildDraft();
+      el.preview.value = JSON.stringify(draft, null, 2);
+
+      // simple status
+      if ((draft.name || "").trim()) setPill("ok", "STATUS: draft ready");
+      else setPill("warn", "STATUS: name empty");
+
+      return true;
+    } catch (e) {
+      el.preview.value = `// Preview error: ${e.message}`;
+      setPill("bad", "STATUS: invalid input");
+      return false;
+    }
+  }
+
   async function fetchPublicContentJson(url) {
-    // cache-bust + no-store
     const u = new URL(url);
     u.searchParams.set("ts", String(Date.now()));
     const res = await fetch(u.toString(), { cache: "no-store" });
@@ -133,23 +147,23 @@
     return await res.json();
   }
 
-  async function ghGetFileMeta(token) {
+  async function ghGetFileSha(token) {
     const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}?ref=${encodeURIComponent(BRANCH)}`;
     const res = await fetch(api, { headers: ghHeaders(token) });
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
-      throw new Error(`GitHub GET contents failed (${res.status}). ${txt.slice(0, 180)}`);
+      throw new Error(`GitHub GET contents failed (${res.status}). ${txt.slice(0, 200)}`);
     }
     const data = await res.json();
-    if (!data || !data.sha) throw new Error("GitHub response missing sha.");
-    return { sha: data.sha, api };
+    if (!data?.sha) throw new Error("GitHub response missing sha.");
+    return data.sha;
   }
 
   async function ghPutContentJson(token, sha, jsonText) {
     const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}`;
 
     const body = {
-      message: `BASE V1: publish content.json via Creator Dashboard`,
+      message: `BASE V1: publish Fan App/content.json via Creator Dashboard`,
       content: toBase64Utf8(jsonText),
       sha,
       branch: BRANCH,
@@ -163,26 +177,16 @@
 
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
-      throw new Error(`GitHub PUT failed (${res.status}). ${txt.slice(0, 220)}`);
+      throw new Error(`GitHub PUT failed (${res.status}). ${txt.slice(0, 260)}`);
     }
 
-    const data = await res.json();
-    const newSha = data?.content?.sha || data?.commit?.sha || null;
-    return { newSha, data };
+    return await res.json();
   }
 
   function fillFromJson(obj) {
-    // Tolerant read (if older file has extra keys, we ignore)
-    el.isLive.value = (obj?.isLive === true) ? "true" : "false";
-    el.liveTitle.value = obj?.liveTitle || "";
-    el.streamUrl.value = obj?.streamUrl || "";
-    el.announcement.value = obj?.announcement || "";
-    el.theme.value = obj?.theme || "";
-
-    if (Array.isArray(obj?.archive)) el.archive.value = JSON.stringify(obj.archive, null, 2);
-    else el.archive.value = "";
-
-    lastLoadedJson = obj;
+    el.name.value = obj?.name ?? "";
+    el.bio.value  = obj?.bio ?? "";
+    el.links.value = Array.isArray(obj?.links) ? JSON.stringify(obj.links, null, 2) : "[]";
     refreshPreview();
   }
 
@@ -199,18 +203,17 @@
     enablePublishIfReady();
   });
 
-  ["change", "input"].forEach((evt) => {
-    el.isLive.addEventListener(evt, enablePublishIfReady);
-    el.liveTitle.addEventListener(evt, enablePublishIfReady);
-    el.streamUrl.addEventListener(evt, enablePublishIfReady);
-    el.announcement.addEventListener(evt, enablePublishIfReady);
-    el.theme.addEventListener(evt, enablePublishIfReady);
-    el.archive.addEventListener(evt, enablePublishIfReady);
+  ["input","change"].forEach((evt) => {
+    el.name.addEventListener(evt, enablePublishIfReady);
+    el.bio.addEventListener(evt, enablePublishIfReady);
+    el.links.addEventListener(evt, enablePublishIfReady);
   });
 
   el.btnResetToken.addEventListener("click", () => {
     localStorage.removeItem(LS_TOKEN);
     el.token.value = "";
+    lastRemoteSha = null;
+    el.lastSha.textContent = "sha: —";
     log("Token cleared (local device). Publish disabled.");
     enablePublishIfReady();
   });
@@ -226,12 +229,10 @@
       log("Loaded public content.json.");
       fillFromJson(current);
 
-      // If token exists, also fetch sha so publish is possible
       const token = (el.token.value || "").trim() || localStorage.getItem(LS_TOKEN) || "";
       if (token) {
-        log("Fetching GitHub file sha (authority path)…");
-        const meta = await ghGetFileMeta(token);
-        lastRemoteSha = meta.sha;
+        log("Fetching GitHub sha (authority path)…");
+        lastRemoteSha = await ghGetFileSha(token);
         el.lastSha.textContent = `sha: ${lastRemoteSha}`;
         log(`GitHub sha loaded: ${lastRemoteSha}`);
       } else {
@@ -240,6 +241,7 @@
         log("No token present. Sha not loaded. Publish remains disabled.");
       }
 
+      setPill("ok", "STATUS: loaded");
       enablePublishIfReady();
       log("Ready.");
     } catch (e) {
@@ -255,22 +257,21 @@
 
       // Always re-fetch sha right before publishing (avoid conflicts)
       log("Re-checking GitHub sha…");
-      const meta = await ghGetFileMeta(token);
-      lastRemoteSha = meta.sha;
+      lastRemoteSha = await ghGetFileSha(token);
       el.lastSha.textContent = `sha: ${lastRemoteSha}`;
 
       const draft = buildDraft();
       const jsonText = JSON.stringify(draft, null, 2);
 
       log("Publishing (committing) to repo…");
-      const result = await ghPutContentJson(token, lastRemoteSha, jsonText);
+      const res = await ghPutContentJson(token, lastRemoteSha, jsonText);
 
-      const newSha = result.newSha || "(sha updated)";
-      lastRemoteSha = result.data?.content?.sha || lastRemoteSha;
-      el.lastSha.textContent = `sha: ${lastRemoteSha}`;
+      const newSha = res?.content?.sha || res?.commit?.sha || "(updated)";
+      if (res?.content?.sha) lastRemoteSha = res.content.sha;
+      el.lastSha.textContent = `sha: ${lastRemoteSha || newSha}`;
 
+      setPill("ok", "STATUS: published");
       log(`Publish success. New sha: ${newSha}`);
-      setPill(draft.isLive ? "ok" : "warn", draft.isLive ? "STATUS: LIVE published" : "STATUS: not-live published");
       enablePublishIfReady();
     } catch (e) {
       setPill("bad", "STATUS: publish failed");
@@ -290,7 +291,7 @@
 
     refreshPreview();
     setPill("warn", "STATUS: not loaded");
-    log("Open Dashboard → paste token → Load Current State → Publish.");
+    log("Workflow: paste token → Load Current State → Publish.");
     enablePublishIfReady();
   }
 
