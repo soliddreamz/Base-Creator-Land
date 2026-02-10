@@ -1,45 +1,42 @@
-const FAN_CONTENT_PATH = "../Fan App/content.json";
+const STATE_KEY = "BASE_CREATOR_STATE_V1";
 
-let current = {};
+// Load existing state
+const state = JSON.parse(localStorage.getItem(STATE_KEY)) || {
+  name: "",
+  bio: "",
+  theme: "#2563eb",
+  live: { isLive:false, url:"" }
+};
 
-async function load() {
-  const res = await fetch(FAN_CONTENT_PATH, { cache: "no-store" });
-  current = await res.json();
+// Bind inputs
+const nameInput = document.getElementById("name");
+const bioInput = document.getElementById("bio");
+const themeInput = document.getElementById("theme");
+const liveUrlInput = document.getElementById("liveUrl");
+const isLiveInput = document.getElementById("isLive");
+const publishBtn = document.getElementById("publish");
 
-  document.getElementById("name").value = current.name || "";
-  document.getElementById("bio").value = current.bio || "";
-  document.getElementById("mode").value = current.mode || "TEST";
+// Populate UI
+nameInput.value = state.name;
+bioInput.value = state.bio;
+themeInput.value = state.theme;
+liveUrlInput.value = state.live.url;
+isLiveInput.checked = state.live.isLive;
 
-  document.getElementById("links").value = (current.links || [])
-    .map(l => `${l.label} | ${l.url}`)
-    .join("\n");
-
-  document.getElementById("preview").textContent =
-    JSON.stringify(current, null, 2);
-}
-
-async function save() {
+// Save + publish
+publishBtn.onclick = () => {
   const updated = {
-    name: document.getElementById("name").value.trim(),
-    bio: document.getElementById("bio").value.trim(),
-    mode: document.getElementById("mode").value,
-    updated: new Date().toISOString().split("T")[0],
-    links: document.getElementById("links").value
-      .split("\n")
-      .map(l => l.split("|"))
-      .filter(p => p.length === 2)
-      .map(p => ({
-        label: p[0].trim(),
-        url: p[1].trim()
-      }))
+    name: nameInput.value,
+    bio: bioInput.value,
+    theme: themeInput.value,
+    live:{
+      isLive: isLiveInput.checked,
+      url: liveUrlInput.value
+    }
   };
 
-  document.getElementById("preview").textContent =
-    JSON.stringify(updated, null, 2);
+  localStorage.setItem(STATE_KEY, JSON.stringify(updated));
+  window.dispatchEvent(new Event("storage"));
 
-  alert(
-    "CONTENT UPDATED.\n\nNext step (for now): commit this repo.\n\nFan App will reflect changes on reload."
-  );
-}
-
-load();
+  alert("Fan App updated");
+};
