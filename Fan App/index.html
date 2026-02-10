@@ -1,93 +1,286 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Base App</title>
-<style>
-body{
-  margin:0;
-  font-family: system-ui;
-  background:#0b0b0f;
-  color:#fff;
-}
-.card{
-  max-width:420px;
-  margin:40px auto;
-  padding:20px;
-  border-radius:16px;
-  background:#111;
-}
-a{
-  display:block;
-  padding:12px;
-  margin-top:10px;
-  background:#222;
-  border-radius:10px;
-  color:#fff;
-  text-decoration:none;
-}
-.badge{
-  margin-top:10px;
-  padding:8px;
-  background:#1f2937;
-  border-radius:8px;
-  font-size:12px;
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0f" />
+  <title>Base App</title>
+
+  <link rel="manifest" href="manifest.json" />
+
+  <style>
+    :root{
+      --bg:#0b0b0f;
+      --panel:#11111a;
+      --text:#e9e9f2;
+      --muted:#a7a7bd;
+      --line:#232334;
+      --good:#2dd4bf;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 700px at 30% -10%, rgba(45,212,191,.08), transparent 60%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(251,191,36,.07), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:980px;margin:0 auto;padding:18px 14px 44px}
+    .top{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:14px 14px;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.02);
+      box-shadow: var(--shadow);
+      position:sticky; top:12px; z-index:10;
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .brand .dot{width:10px;height:10px;border-radius:50%}
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+    .title{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .title strong{font-size:14px;letter-spacing:.2px}
+    .title span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .grid{margin-top:14px;display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width:900px){ .grid{grid-template-columns:1.2fr .8fr} }
+    .card{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.02);
+      box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .card h2{margin:0 0 10px;font-size:14px;letter-spacing:.2px}
+    .muted{color:var(--muted);font-size:13px;line-height:1.4}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{
+      display:inline-flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:10px 12px;border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      font-size:13px;color:var(--text);
+      min-width: 220px;
+    }
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      font-size:13px;color:var(--text);
+      cursor:pointer;
+    }
+    .btn:hover{background: rgba(255,255,255,.04)}
+    .liveBadge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      font-size:12px;color:var(--muted);
+    }
+    .toast{
+      position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+      background: rgba(0,0,0,.65);
+      border:1px solid rgba(255,255,255,.12);
+      padding:10px 12px;border-radius:999px;
+      font-size:12px;color:var(--text);
+      box-shadow: var(--shadow);
+      opacity:0;pointer-events:none;
+      transition: opacity .15s ease;
+      white-space:nowrap;
+    }
+    .toast.on{opacity:1}
+    pre{
+      margin:0;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.22);
+      overflow:auto;
+      font-size:12px;
+      color: var(--muted);
+    }
+  </style>
 </head>
+
 <body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <span id="statusDot" class="dot warn"></span>
+        <div class="title">
+          <strong id="creatorName">Base App</strong>
+          <span id="creatorBio">Free Base • Creator-owned • No platform dependency</span>
+        </div>
+      </div>
+      <div class="liveBadge" id="liveBadge">OFFLINE</div>
+    </header>
 
-<div class="card">
-  <h2 id="name">Loading…</h2>
-  <p id="bio"></p>
+    <div class="grid">
+      <section class="card">
+        <h2>Welcome to my Base</h2>
+        <p class="muted" id="welcomeText">This is my home app. No algorithm. No platform feed.</p>
 
-  <div id="live"></div>
-  <div id="links"></div>
+        <div style="height:12px"></div>
 
-  <div class="badge" id="mode"></div>
-</div>
+        <h2>Media</h2>
+        <div class="row" id="mediaRow"></div>
+        <div class="muted" id="mediaEmpty" style="margin-top:8px;display:none;">No media items yet.</div>
+      </section>
 
-<script>
-const DEFAULT_STATE = {
-  name: "Base Creator",
-  bio: "",
-  mode: "TEST",
-  live: { isLive:false, url:"" },
-  links: []
-};
+      <aside class="card">
+        <h2>Social</h2>
+        <p class="muted">Direct links. No feed.</p>
+        <div class="row" id="linksRow"></div>
 
-function loadState(){
-  const raw = localStorage.getItem("BASE_STATE_V1");
-  return raw ? JSON.parse(raw) : DEFAULT_STATE;
-}
+        <div style="height:12px"></div>
 
-function render(){
-  const s = loadState();
+        <button class="btn" id="openLiveBtn" style="display:none;">Open Live</button>
 
-  document.getElementById("name").textContent = s.name;
-  document.getElementById("bio").textContent = s.bio;
-  document.getElementById("mode").textContent = "Mode: " + s.mode;
+        <div style="height:10px"></div>
 
-  const live = document.getElementById("live");
-  live.innerHTML = "";
-  if(s.live.isLive && s.live.url){
-    live.innerHTML = `<a href="${s.live.url}">🔴 Live Now</a>`;
-  }
+        <h2>Debug</h2>
+        <p class="muted">
+          This app can accept <strong>live preview</strong> updates from the Creator Dashboard when both are open.
+        </p>
+        <pre id="debugPre">{}</pre>
+      </aside>
+    </div>
+  </div>
 
-  const links = document.getElementById("links");
-  links.innerHTML = "";
-  s.links.forEach(l=>{
-    const a = document.createElement("a");
-    a.href = l.url;
-    a.textContent = l.label;
-    links.appendChild(a);
-  });
-}
+  <div class="toast" id="toast">Live preview updated</div>
 
-render();
-window.addEventListener("storage", render);
-</script>
+  <script>
+    // ====== BASE FREE LIVE BRIDGE (NO BACKEND) ======
+    // Creator Dashboard broadcasts updates -> Fan App updates instantly (same origin).
+    // Key is creator-controlled and changeable. No universal key.
+    const CHANNEL_NAME = "base-live-bridge";
+    const bc = ("BroadcastChannel" in window) ? new BroadcastChannel(CHANNEL_NAME) : null;
 
+    function qs(name){
+      return new URLSearchParams(location.search).get(name);
+    }
+
+    // Key is required to accept controller updates.
+    // The creator shares it to their own preview session (for testing).
+    const sessionKey = (qs("key") || "").trim();
+
+    const toastEl = document.getElementById("toast");
+    let toastTimer = null;
+    function toast(msg){
+      toastEl.textContent = msg;
+      toastEl.classList.add("on");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=>toastEl.classList.remove("on"), 900);
+    }
+
+    function setDot(level){
+      const dot = document.getElementById("statusDot");
+      dot.classList.remove("good","warn","bad");
+      dot.classList.add(level);
+    }
+
+    function setLiveBadge(isLive){
+      const badge = document.getElementById("liveBadge");
+      badge.textContent = isLive ? "LIVE" : "OFFLINE";
+      setDot(isLive ? "good" : "bad");
+      const btn = document.getElementById("openLiveBtn");
+      btn.style.display = isLive ? "inline-flex" : "none";
+    }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    function render(app){
+      // app schema: { name, bio, welcome, mode, updated, live:{isLive,url}, links:[{label,url}], media:[{title,subtitle,url}] }
+      document.getElementById("creatorName").textContent = app?.name || "Base App";
+      document.getElementById("creatorBio").textContent = app?.bio || "Free Base • Creator-owned • No platform dependency";
+      document.getElementById("welcomeText").textContent = app?.welcome || "This is my home app. No algorithm. No platform feed.";
+
+      const isLive = !!app?.live?.isLive;
+      setLiveBadge(isLive);
+
+      const liveUrl = (app?.live?.url || "").trim();
+      const liveBtn = document.getElementById("openLiveBtn");
+      liveBtn.onclick = () => {
+        if (liveUrl) window.open(liveUrl, "_blank", "noopener");
+      };
+
+      // Links
+      const linksRow = document.getElementById("linksRow");
+      linksRow.innerHTML = "";
+      const links = Array.isArray(app?.links) ? app.links : [];
+      for (const item of links){
+        const a = document.createElement("a");
+        a.className = "pill";
+        a.href = item.url || "#";
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.innerHTML = `<span>${esc(item.label || "Link")}</span><span class="muted">Open</span>`;
+        linksRow.appendChild(a);
+      }
+
+      // Media
+      const mediaRow = document.getElementById("mediaRow");
+      mediaRow.innerHTML = "";
+      const media = Array.isArray(app?.media) ? app.media : [];
+      document.getElementById("mediaEmpty").style.display = media.length ? "none" : "block";
+      for (const m of media){
+        const a = document.createElement("a");
+        a.className = "pill";
+        a.href = m.url || "#";
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.innerHTML = `<span>${esc(m.title || "Media")}</span><span class="muted">${esc(m.subtitle || "")}</span>`;
+        mediaRow.appendChild(a);
+      }
+
+      document.getElementById("debugPre").textContent = JSON.stringify(app, null, 2);
+    }
+
+    async function loadInitial(){
+      // Load published config
+      const res = await fetch("./content.json", { cache: "no-store" });
+      const data = await res.json();
+      render(data);
+      setDot((data?.live?.isLive) ? "good" : "bad");
+    }
+
+    // Listen for controller updates
+    if (bc){
+      bc.onmessage = (ev) => {
+        const msg = ev.data || {};
+        if (msg.type !== "APP_UPDATE") return;
+
+        // If a key is required, only accept updates that match the session key.
+        // This prevents "universal key" behavior.
+        if (!sessionKey) return;               // no key => no live preview control accepted
+        if ((msg.key || "") !== sessionKey) return;
+
+        if (msg.payload && typeof msg.payload === "object"){
+          render(msg.payload);
+          toast("Live preview updated");
+        }
+      };
+    }
+
+    // Boot
+    loadInitial().catch(() => {
+      document.getElementById("creatorName").textContent = "Base App";
+      document.getElementById("creatorBio").textContent = "Could not load content.json";
+      setDot("warn");
+    });
+  </script>
 </body>
 </html>
