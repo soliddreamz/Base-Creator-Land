@@ -1,42 +1,61 @@
-const STATE_KEY = "BASE_CREATOR_STATE_V1";
+// dashboard.js
+// Base Creator Authority — Local, Changeable, Non-Permanent
 
-// Load existing state
-const state = JSON.parse(localStorage.getItem(STATE_KEY)) || {
-  name: "",
-  bio: "",
-  theme: "#2563eb",
-  live: { isLive:false, url:"" }
-};
+const CREATOR_KEY_STORAGE = "base_creator_key";
+const CREATOR_KEY_ACTIVE = "base_creator_active";
 
-// Bind inputs
-const nameInput = document.getElementById("name");
-const bioInput = document.getElementById("bio");
-const themeInput = document.getElementById("theme");
-const liveUrlInput = document.getElementById("liveUrl");
-const isLiveInput = document.getElementById("isLive");
-const publishBtn = document.getElementById("publish");
+// --- Utilities ---
+function generateKey() {
+  return crypto.randomUUID();
+}
 
-// Populate UI
-nameInput.value = state.name;
-bioInput.value = state.bio;
-themeInput.value = state.theme;
-liveUrlInput.value = state.live.url;
-isLiveInput.checked = state.live.isLive;
+function getStoredKey() {
+  return localStorage.getItem(CREATOR_KEY_STORAGE);
+}
 
-// Save + publish
-publishBtn.onclick = () => {
-  const updated = {
-    name: nameInput.value,
-    bio: bioInput.value,
-    theme: themeInput.value,
-    live:{
-      isLive: isLiveInput.checked,
-      url: liveUrlInput.value
-    }
-  };
+function isCreatorActive() {
+  return localStorage.getItem(CREATOR_KEY_ACTIVE) === "true";
+}
 
-  localStorage.setItem(STATE_KEY, JSON.stringify(updated));
-  window.dispatchEvent(new Event("storage"));
+// --- Creator Actions ---
+function createCreatorKey() {
+  const key = generateKey();
+  localStorage.setItem(CREATOR_KEY_STORAGE, key);
+  localStorage.setItem(CREATOR_KEY_ACTIVE, "true");
+  applyMode();
+  return key;
+}
 
-  alert("Fan App updated");
+function rotateCreatorKey() {
+  return createCreatorKey();
+}
+
+function revokeCreatorKey() {
+  localStorage.removeItem(CREATOR_KEY_STORAGE);
+  localStorage.removeItem(CREATOR_KEY_ACTIVE);
+  applyMode();
+}
+
+// --- Mode Handling ---
+function applyMode() {
+  const creatorKey = getStoredKey();
+  const creatorEnabled = isCreatorActive();
+
+  document.body.setAttribute(
+    "data-mode",
+    creatorKey && creatorEnabled ? "creator" : "fan"
+  );
+}
+
+// --- Init ---
+document.addEventListener("DOMContentLoaded", () => {
+  applyMode();
+});
+
+// --- Expose for UI ---
+window.BaseCreator = {
+  createKey: createCreatorKey,
+  rotateKey: rotateCreatorKey,
+  revokeKey: revokeCreatorKey,
+  isCreator: () => document.body.dataset.mode === "creator",
 };
