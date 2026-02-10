@@ -1,86 +1,68 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Creator Dashboard</title>
 
 <style>
 body{
   margin:0;
-  font-family: system-ui;
+  font-family:system-ui;
   background:#0b0b0f;
-  color:#fff;
+  color:white;
 }
-.wrap{
-  max-width:560px;
-  margin:30px auto;
-  padding:20px;
+.panel{
+  padding:16px;
+  border-bottom:1px solid #222;
 }
-.card{
-  background:#111;
-  border-radius:18px;
-  padding:20px;
-  margin-bottom:16px;
-}
-label{font-size:12px;opacity:.7}
-input, textarea{
+input{
   width:100%;
-  padding:12px;
-  margin-top:6px;
-  margin-bottom:12px;
-  border-radius:12px;
-  border:none;
-  background:#1f2937;
-  color:#fff;
+  padding:10px;
+  margin-bottom:10px;
+  background:#111;
+  border:1px solid #333;
+  color:white;
 }
 button{
-  width:100%;
-  padding:14px;
-  border-radius:14px;
+  padding:10px 14px;
+  background:#2dd4bf;
   border:none;
-  background:#2563eb;
-  color:#fff;
-  font-size:16px;
+  color:black;
+  font-weight:bold;
 }
-.small{font-size:12px;opacity:.6}
+iframe{
+  width:100%;
+  height:60vh;
+  border:none;
+}
 </style>
 </head>
 
 <body>
-<div class="wrap">
 
-  <div class="card">
-    <h2>Creator Dashboard</h2>
-    <div class="small">Controls what fans see</div>
-  </div>
-
-  <div class="card">
-    <label>Name</label>
-    <input id="name">
-
-    <label>Bio</label>
-    <textarea id="bio"></textarea>
-
-    <label>Theme Color</label>
-    <input id="theme" type="color">
-  </div>
-
-  <div class="card">
-    <label>Live URL</label>
-    <input id="liveUrl">
-
-    <label>
-      <input type="checkbox" id="isLive"> Live Now
-    </label>
-  </div>
-
-  <div class="card">
-    <button id="publish">Update Fan App</button>
-  </div>
-
+<div class="panel">
+  <input id="name" placeholder="Creator name">
+  <input id="bio" placeholder="Bio">
+  <button onclick="send()">UPDATE LIVE</button>
 </div>
 
-<script src="dashboard.js"></script>
+<iframe id="fan" src="../Fan%20App/index.html"></iframe>
+
+<script>
+function send(){
+  const payload = {
+    name: document.getElementById("name").value || "Creator",
+    bio: document.getElementById("bio").value || "",
+    live: true
+  };
+
+  document.getElementById("fan").contentWindow.postMessage({
+    type:"BASE_UPDATE",
+    payload
+  },"*");
+}
+</script>
+
 </body>
 </html>
