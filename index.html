@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0f" />
+  <title>Base App</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root{
+      --bg:#0b0b0f;
+      --panel:#11111a;
+      --text:#e9e9f2;
+      --muted:#a7a7bd;
+      --line:#232334;
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
+    .wrap{max-width:900px;margin:0 auto;padding:18px 14px 40px}
+    .top{
+      position:sticky;top:10px;z-index:10;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:rgba(255,255,255,.02);
+      backdrop-filter: blur(10px);
+      padding:12px 12px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .brand strong{font-size:14px;letter-spacing:.2px}
+    .brand span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:8px 10px;
+      background:rgba(0,0,0,.22);
+      font-size:12px;color:var(--muted);
+    }
+    .grid{margin-top:14px;display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      background:rgba(255,255,255,.02);
+    }
+    h2{margin:0 0 8px;font-size:14px}
+    .muted{color:var(--muted);font-size:13px;line-height:1.4}
+    .list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+    .item{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(0,0,0,.18);
+      display:flex;justify-content:space-between;gap:10px;align-items:center;
+    }
+    .item strong{font-size:13px}
+    .item a{color:inherit;text-decoration:none}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.02);
+      font-size:13px;
+    }
+    .btn:hover{background:rgba(255,255,255,.04)}
+    .hidden{display:none !important}
+    .hr{height:1px;background:rgba(255,255,255,.06);margin:12px 0}
+    .livebox{
+      border:1px dashed rgba(255,255,255,.16);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(0,0,0,.18);
+    }
+    input[type="text"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.22);
+      color:var(--text);
+      font-size:13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <strong id="appTitle">Base App</strong>
+        <span id="appSubtitle">Free Base • Creator-owned</span>
+      </div>
+      <span class="chip" id="statusChip">Offline</span>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2 id="fanHeadline">Welcome</h2>
+        <p class="muted" id="fanAbout">—</p>
+
+        <div class="hr"></div>
+
+        <div id="liveSection" class="livebox hidden">
+          <h2 style="margin:0 0 8px">Live</h2>
+          <p class="muted" style="margin:0 0 10px">If the creator is live, the stream link appears here.</p>
+          <a class="btn" id="liveBtn" href="#" target="_blank" rel="noopener">Watch Live</a>
+          <p class="muted" style="margin:10px 0 0;font-size:12px">Note: some mobile browsers require a tap to start playback.</p>
+        </div>
+
+        <div id="mediaSection" class="hidden" style="margin-top:12px">
+          <h2>Media</h2>
+          <div class="list" id="mediaList"></div>
+        </div>
+
+        <div id="archiveSection" class="hidden" style="margin-top:12px">
+          <h2>Archive</h2>
+          <div class="list" id="archiveList"></div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>Social</h2>
+        <p class="muted">Direct links. No feed.</p>
+        <div class="list" id="socialList"></div>
+        <div class="hr"></div>
+        <p class="muted" style="font-size:12px">
+          Creator controls live at <code>/dashboard.html</code> (keep private).
+        </p>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // PWA cache
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
+    }
+
+    const OVERRIDE_KEY = "creatorOverrides_v1";
+
+    function loadOverrides(){
+      try { return JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}"); }
+      catch { return {}; }
+    }
+
+    function applyTheme(theme){
+      if (!theme) return;
+      if (theme.background) document.documentElement.style.setProperty("--bg", theme.background);
+      if (theme.accent) document.documentElement.style.setProperty("--text", theme.accent);
+    }
+
+    function setHidden(el, hide){
+      el.classList.toggle("hidden", !!hide);
+    }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    function renderList(container, items, kind){
+      container.innerHTML = "";
+      for (const it of items){
+        const row = document.createElement("div");
+        row.className = "item";
+        const left = document.createElement("div");
+        left.innerHTML = `<strong>${esc(it.title || it.label || "Item")}</strong><div class="muted" style="font-size:12px;margin-top:2px">${esc(it.tag || it.type || "")}</div>`;
+        const a = document.createElement("a");
+        a.className = "btn";
+        a.href = it.url || it.href || "#";
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = (kind === "social") ? "Open" : "View";
+        row.appendChild(left);
+        row.appendChild(a);
+        container.appendChild(row);
+      }
+      if (!items.length){
+        container.innerHTML = `<div class="muted" style="font-size:13px">—</div>`;
+      }
+    }
+
+    async function boot(){
+      const res = await fetch("./content.json", { cache: "no-store" });
+      const base = await res.json();
+      const overrides = loadOverrides();
+
+      // Merge overrides into creator.controls (only the override fields exist in localStorage)
+      const creatorBase = base.creator || {};
+      const creator = {
+        ...creatorBase,
+        ...overrides,
+        controls: {
+          ...(creatorBase.controls || {}),
+          ...(overrides.controls || {})
+        }
+      };
+
+      // Apply theme
+      applyTheme(creator.controls?.theme);
+
+      // Header
+      document.getElementById("appTitle").textContent = base.app?.title || "Base App";
+      document.getElementById("appSubtitle").textContent = base.app?.subtitle || "";
+      const statusChip = document.getElementById("statusChip");
+      statusChip.textContent = creator.live_status ? creator.live_status.toUpperCase() : "OFFLINE";
+
+      // Fan copy
+      document.getElementById("fanHeadline").textContent = base.fan?.headline || "Welcome";
+      document.getElementById("fanAbout").textContent = base.fan?.about || "—";
+
+      // Section controls
+      const sec = creator.controls?.sections || {};
+      const showMedia = sec.show_media !== false;
+      const showSocial = sec.show_social !== false;
+      const liveEnabled = !!sec.live_enabled;
+      const archiveEnabled = !!sec.archive_enabled;
+
+      // Live section (uses base.fan.live.stream_url but controlled by creator flag)
+      const liveSection = document.getElementById("liveSection");
+      const liveBtn = document.getElementById("liveBtn");
+      const liveUrl = (base.fan?.live?.stream_url || "").trim();
+      const canShowLive = liveEnabled && liveUrl.length > 0;
+
+      setHidden(liveSection, !canShowLive);
+      if (canShowLive) liveBtn.href = liveUrl;
+
+      // Media
+      const mediaSection = document.getElementById("mediaSection");
+      setHidden(mediaSection, !showMedia);
+      if (showMedia) renderList(document.getElementById("mediaList"), Array.isArray(base.fan?.media) ? base.fan.media : [], "media");
+
+      // Social
+      const socialList = document.getElementById("socialList");
+      setHidden(socialList.parentElement, !showSocial);
+      if (showSocial) renderList(socialList, Array.isArray(base.fan?.social) ? base.fan.social : [], "social");
+
+      // Archive
+      const archiveSection = document.getElementById("archiveSection");
+      setHidden(archiveSection, !archiveEnabled);
+      if (archiveEnabled) renderList(document.getElementById("archiveList"), Array.isArray(base.fan?.archive?.items) ? base.fan.archive.items : [], "archive");
+    }
+
+    boot().catch(() => {
+      document.getElementById("fanHeadline").textContent = "Could not load content.json";
+    });
+  </script>
+</body>
+</html>
