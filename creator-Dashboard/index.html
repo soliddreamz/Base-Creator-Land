@@ -1,95 +1,82 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Creator Dashboard</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #0b0b0f;
-      color: #e9e9f2;
-    }
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px;
-    }
-    h1 { font-size: 20px; margin-bottom: 4px; }
-    .sub { color: #a7a7bd; margin-bottom: 24px; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    label { display: block; margin-top: 14px; font-size: 13px; }
-    input, textarea, select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      background: #151522;
-      color: #fff;
-      margin-top: 6px;
-    }
-
-    button {
-      margin-top: 20px;
-      padding: 12px;
-      border-radius: 12px;
-      border: none;
-      background: #2dd4bf;
-      color: #000;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    pre {
-      background: #0f0f18;
-      padding: 14px;
-      border-radius: 12px;
-      overflow: auto;
-      font-size: 12px;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Creator Dashboard</title>
+<style>
+body{
+  margin:0;
+  font-family: system-ui;
+  background:#0b0b0f;
+  color:#fff;
+}
+.panel{
+  max-width:500px;
+  margin:40px auto;
+  padding:20px;
+  background:#111;
+  border-radius:16px;
+}
+input,textarea{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border-radius:10px;
+  border:none;
+  background:#222;
+  color:#fff;
+}
+button{
+  margin-top:12px;
+  padding:12px;
+  width:100%;
+  border-radius:12px;
+  border:none;
+  background:#2563eb;
+  color:#fff;
+  font-size:16px;
+}
+</style>
 </head>
-
 <body>
-  <div class="wrap">
-    <h1>Creator Dashboard</h1>
-    <div class="sub">Private control surface — updates Fan App automatically</div>
 
-    <div class="grid">
-      <div>
-        <label>Name</label>
-        <input id="name" />
+<div class="panel">
+  <h2>Creator Dashboard</h2>
 
-        <label>Bio</label>
-        <textarea id="bio"></textarea>
+  <input id="name" placeholder="Creator name" />
+  <textarea id="bio" placeholder="Bio"></textarea>
 
-        <label>Mode</label>
-        <select id="mode">
-          <option value="TEST">TEST</option>
-          <option value="LIVE">LIVE</option>
-        </select>
+  <input id="liveUrl" placeholder="Live URL" />
+  <label>
+    <input type="checkbox" id="isLive" /> Live
+  </label>
 
-        <label>Links (label | url)</label>
-        <textarea id="links"></textarea>
+  <input id="linkLabel" placeholder="Link label" />
+  <input id="linkUrl" placeholder="Link URL" />
 
-        <button onclick="save()">Update Fan App</button>
-      </div>
+  <button onclick="save()">Update Fan App</button>
+</div>
 
-      <div>
-        <div class="sub">Live Fan App State</div>
-        <pre id="preview">{}</pre>
-      </div>
-    </div>
-  </div>
+<script>
+function save(){
+  const state = {
+    name: name.value,
+    bio: bio.value,
+    mode: "LIVE",
+    live:{
+      isLive: isLive.checked,
+      url: liveUrl.value
+    },
+    links: linkLabel.value && linkUrl.value
+      ? [{ label: linkLabel.value, url: linkUrl.value }]
+      : []
+  };
 
-<script src="dashboard.js"></script>
+  localStorage.setItem("BASE_STATE_V1", JSON.stringify(state));
+  alert("Fan App updated");
+}
+</script>
+
 </body>
 </html>
