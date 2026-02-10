@@ -1,0 +1,50 @@
+{
+  "app": {
+    "title": "Base App",
+    "subtitle": "Free Base • Creator-owned • No platform dependency"
+  },
+  "fan": {
+    "headline": "Welcome to my Base",
+    "about": "This is my home app. No algorithm. No platform feed.",
+    "media": [
+      { "title": "Latest Drop", "type": "link", "url": "https://example.com", "tag": "new" }
+    ],
+    "social": [
+      { "label": "Instagram", "url": "https://instagram.com/" },
+      { "label": "YouTube", "url": "https://youtube.com/" }
+    ],
+    "live": {
+      "title": "Live",
+      "enabled": false,
+      "stream_url": ""
+    },
+    "archive": {
+      "enabled": false,
+      "items": []
+    }
+  },
+  "creator": {
+    "headline": "Creator Dashboard (UI controls). No backend.",
+    "mode": "BASE_FREE",
+    "live_status": "offline",
+    "live_status_text": "Not live.",
+    "updated": "2026-01-21",
+    "notes": "Session notes:\n- Goal:\n- What worked:\n- What failed:\n- Next change:\n",
+    "quick_links": [
+      { "label": "OBS Project", "href": "https://obsproject.com/" },
+      { "label": "YouTube Studio Live", "href": "https://studio.youtube.com/" }
+    ],
+    "controls": {
+      "theme": {
+        "background": "#0b0b0f",
+        "accent": "#e9e9f2"
+      },
+      "sections": {
+        "show_media": true,
+        "show_social": true,
+        "live_enabled": false,
+        "archive_enabled": false
+      }
+    }
+  }
+}
