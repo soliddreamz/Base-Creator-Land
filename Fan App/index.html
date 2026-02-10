@@ -1,47 +1,66 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0f" />
+  <title>Fan App</title>
 
-  <title>Creator Home</title>
-
-  <!-- BASE FAN APP -->
-  <!-- Public surface -->
-  <!-- Fans only -->
-  <!-- Content driven by content.json -->
-
-  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root{
+      --bg:#0b0b0f;
+      --panel:#11111a;
+      --text:#e9e9f2;
+      --muted:#a7a7bd;
+      --line:#232334;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:720px;margin:0 auto;padding:20px}
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:var(--panel);
+      padding:16px;
+    }
+    h1{font-size:18px;margin:0 0 6px}
+    p{font-size:14px;color:var(--muted);margin:0}
+  </style>
 </head>
+
 <body>
-
-  <main>
-    <h1 id="name"></h1>
-    <p id="bio"></p>
-
-    <section id="links"></section>
-  </main>
+  <div class="wrap">
+    <div class="card">
+      <h1 id="name">Creator</h1>
+      <p id="bio">Welcome</p>
+    </div>
+  </div>
 
   <script>
-    fetch('content.json')
-      .then(r => r.json())
-      .then(data => {
-        document.getElementById('name').textContent = data.name;
-        document.getElementById('bio').textContent = data.bio;
+    /* SAME PER-CREATOR LAND KEY */
+    const CREATOR_LAND_KEY = "base_free_land_pilot7";
 
-        const links = document.getElementById('links');
-        links.innerHTML = '';
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(CREATOR_LAND_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
 
-        data.links.forEach(item => {
-          const a = document.createElement('a');
-          a.href = item.url;
-          a.textContent = item.label;
-          a.target = '_blank';
-          links.appendChild(a);
-          links.appendChild(document.createElement('br'));
-        });
-      });
+    const state = loadState();
+    if (state) {
+      if (state.name) document.getElementById("name").textContent = state.name;
+      if (state.bio) document.getElementById("bio").textContent = state.bio;
+      if (state.bg) document.documentElement.style.setProperty("--bg", state.bg);
+    }
   </script>
-
 </body>
 </html>
