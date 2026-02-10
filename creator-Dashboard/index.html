@@ -1,360 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0f" />
   <title>Creator Dashboard</title>
 
-  <!--
-    BASE FREE — CREATOR DASHBOARD (TEMPLATE)
-    Separate from Fan App.
-    UI-only. No backend assumed.
-    Does NOT auto-push updates.
-    Provides controls to update Fan App content.json with ease.
-  -->
-
   <style>
-    :root { color-scheme: dark; }
-    body { margin: 0; font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial; background:#0b0b0f; color:#eaeaf2; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 18px; }
-    .top { display:flex; gap:14px; align-items:center; padding: 14px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
-    .logo { width: 54px; height: 54px; border-radius: 14px; background: rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; font-weight:700; }
-    h1 { font-size: 28px; margin: 0; }
-    .sub { opacity: 0.75; margin-top: 4px; }
-    .pillrow { display:flex; gap:10px; margin-left:auto; flex-wrap:wrap; }
-    .pill { padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); font-size: 13px; }
-    .card { margin-top: 14px; padding: 14px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
-    .warn { opacity: 0.80; line-height: 1.35; }
-    .grid { display:grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 860px){ .grid { grid-template-columns: 1.1fr 0.9fr; } }
-    label { display:block; font-size: 12px; opacity: 0.75; margin-bottom: 6px; }
-    input, textarea, select {
-      width: 100%; box-sizing: border-box;
-      padding: 12px 12px; border-radius: 14px;
-      background: rgba(0,0,0,0.35); color:#eaeaf2;
-      border: 1px solid rgba(255,255,255,0.10);
-      outline: none;
+    :root{
+      --bg:#0b0b0f;
+      --panel:#11111a;
+      --text:#e9e9f2;
+      --muted:#a7a7bd;
+      --line:#232334;
+      --radius:16px;
     }
-    textarea { min-height: 90px; resize: vertical; }
-    .row { display:flex; gap:10px; }
-    .row > * { flex:1; }
-    .btnrow { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
-    button {
-      padding: 12px 14px; border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color:#eaeaf2; cursor:pointer;
-      font-weight: 600;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background:var(--bg);
+      color:var(--text);
     }
-    button:disabled { opacity: 0.45; cursor:not-allowed; }
-    .small { font-size: 12px; opacity: 0.70; }
-    .links { display:flex; flex-direction:column; gap:10px; }
-    .linkItem { padding: 12px; border-radius: 16px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); }
-    .linkItemHead { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom: 8px; }
-    .tag { font-size: 12px; opacity:0.75; }
-    pre { margin: 0; padding: 12px; border-radius: 16px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.10); overflow:auto; }
-    .ok { color: #9ef7b2; }
-    .bad { color: #ffb4b4; }
+    .wrap{max-width:720px;margin:0 auto;padding:20px}
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:var(--panel);
+      padding:16px;
+      margin-bottom:14px;
+    }
+    h1{font-size:16px;margin:0 0 10px}
+    label{font-size:12px;color:var(--muted)}
+    input,textarea{
+      width:100%;
+      padding:10px;
+      margin-top:6px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#000;
+      color:var(--text);
+      font-size:14px;
+    }
+    textarea{min-height:100px}
+    button{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:0;
+      background:#2dd4bf;
+      color:#000;
+      font-weight:600;
+      font-size:14px;
+      cursor:pointer;
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
-    <div class="top">
-      <div class="logo">DJ</div>
-      <div>
-        <h1>Creator Dashboard</h1>
-        <div class="sub">Base Free — Creator tool (separate from Fan App)</div>
-      </div>
-      <div class="pillrow">
-        <div class="pill">Mode: <strong id="modePill">TEST</strong></div>
-        <div class="pill">Updated: <strong id="updatedPill">—</strong></div>
-        <div class="pill">Dashboard</div>
-      </div>
-    </div>
+    <div class="card">
+      <h1>Creator Dashboard</h1>
 
-    <div class="card warn">
-      <strong>Private Creator Tool</strong><br/>
-      This dashboard does <strong>not</strong> push updates anywhere. To change what fans see, use the controls below to generate an updated <code>content.json</code>, then replace the Fan App’s <code>content.json</code> with it and redeploy.
-      <div class="small" style="margin-top:8px;">
-        Fan App file: <code>Fan App/content.json</code> • Dashboard reads from that file (same repo).
-      </div>
-    </div>
+      <label>Display Name</label>
+      <input id="name" placeholder="Creator name" />
 
-    <div class="grid">
-      <!-- LEFT: CONTROLS -->
-      <div class="card">
-        <h2 style="margin:0 0 10px 0; font-size:18px;">Controls</h2>
+      <label style="margin-top:10px">Bio</label>
+      <textarea id="bio" placeholder="Short description"></textarea>
 
-        <div class="row">
-          <div>
-            <label>Creator name</label>
-            <input id="name" placeholder="Creator Name" />
-          </div>
-          <div>
-            <label>Mode</label>
-            <select id="mode">
-              <option value="TEST">TEST</option>
-              <option value="LIVE">LIVE</option>
-            </select>
-          </div>
-        </div>
+      <label style="margin-top:10px">Background Color</label>
+      <input id="bg" type="color" value="#0b0b0f" />
 
-        <div style="margin-top:10px;">
-          <label>Bio</label>
-          <textarea id="bio" placeholder="Short description / identity"></textarea>
-        </div>
-
-        <div style="margin-top:10px;">
-          <div class="row">
-            <div>
-              <label>Live isLive</label>
-              <select id="isLive">
-                <option value="false">false</option>
-                <option value="true">true</option>
-              </select>
-            </div>
-            <div>
-              <label>Live URL</label>
-              <input id="liveUrl" placeholder="https://..." />
-            </div>
-          </div>
-          <div class="small" style="margin-top:6px;">
-            If <code>isLive=true</code>, the Fan App may show a “Live” link/button (depending on its UI).
-          </div>
-        </div>
-
-        <div style="margin-top:12px;">
-          <h3 style="margin:0 0 8px 0; font-size:15px;">Links</h3>
-          <div class="links" id="links"></div>
-          <div class="btnrow">
-            <button id="addLinkBtn">Add link</button>
-            <button id="resetBtn">Reset to loaded</button>
-          </div>
-          <div class="small">Links are what fans see as buttons.</div>
-        </div>
-
-        <div style="margin-top:12px;">
-          <h3 style="margin:0 0 8px 0; font-size:15px;">Notes (creator-only)</h3>
-          <label>Session notes</label>
-          <textarea id="notes" placeholder="- Goal:\n- What worked:\n- What failed:\n- Next change (creator repo only):"></textarea>
-          <div class="small">Notes are stored in <code>content.json</code> for continuity (read-only mirror shown on the right).</div>
-        </div>
-
-        <div class="btnrow" style="margin-top:14px;">
-          <button id="generateBtn">Generate updated content.json</button>
-          <button id="copyBtn" disabled>Copy JSON</button>
-          <button id="downloadBtn" disabled>Download content.json</button>
-        </div>
-
-        <div class="small" style="margin-top:8px;">
-          Status: <span id="status" class="bad">Not loaded</span>
-        </div>
-      </div>
-
-      <!-- RIGHT: READ-ONLY MIRROR -->
-      <div class="card">
-        <h2 style="margin:0 0 10px 0; font-size:18px;">Read-only mirror</h2>
-        <div class="small" style="margin-bottom:10px;">
-          Displays what’s currently published (loaded from <code>../Fan App/content.json</code>).
-        </div>
-        <pre id="mirror">{}</pre>
-      </div>
+      <button id="save" style="margin-top:14px">Save</button>
     </div>
   </div>
 
   <script>
-    // Base Free rule: UI-only. No backend. No auto-push.
+    /* PER-CREATOR LAND KEY (LOCAL AUTHORITY) */
+    const CREATOR_LAND_KEY = "base_free_land_pilot7";
 
-    const fanContentUrl = '../Fan App/content.json';
-
-    const el = (id) => document.getElementById(id);
-
-    const state = {
-      loaded: null,
-      working: null
-    };
-
-    function nowISO() {
-      const d = new Date();
-      const pad = (n) => String(n).padStart(2,'0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    }
-
-    function setStatus(ok, msg) {
-      const s = el('status');
-      s.textContent = msg;
-      s.className = ok ? 'ok' : 'bad';
-    }
-
-    function renderMirror(obj) {
-      el('mirror').textContent = JSON.stringify(obj, null, 2);
-    }
-
-    function fillControls(obj) {
-      el('name').value = obj.name || '';
-      el('bio').value = obj.bio || '';
-      el('mode').value = obj.mode || 'TEST';
-
-      el('isLive').value = String(!!(obj.live && obj.live.isLive));
-      el('liveUrl').value = (obj.live && obj.live.url) ? obj.live.url : '';
-
-      el('notes').value = (obj.notes && obj.notes.session) ? obj.notes.session : '';
-
-      renderLinks(obj.links || []);
-      el('modePill').textContent = el('mode').value;
-      el('updatedPill').textContent = obj.updated || '—';
-    }
-
-    function collectWorking() {
-      const links = Array.from(document.querySelectorAll('[data-link]')).map(node => ({
-        label: node.querySelector('[data-label]').value.trim(),
-        url: node.querySelector('[data-url]').value.trim()
-      })).filter(x => x.label && x.url);
-
-      return {
-        name: el('name').value.trim(),
-        bio: el('bio').value.trim(),
-        mode: el('mode').value,
-        updated: nowISO(),
-        live: {
-          isLive: el('isLive').value === 'true',
-          url: el('liveUrl').value.trim()
-        },
-        links,
-        notes: {
-          session: el('notes').value
-        }
+    function saveState() {
+      const state = {
+        name: document.getElementById("name").value,
+        bio: document.getElementById("bio").value,
+        bg: document.getElementById("bg").value,
+        updated: Date.now()
       };
+      localStorage.setItem(CREATOR_LAND_KEY, JSON.stringify(state));
     }
 
-    function renderLinks(links) {
-      const wrap = el('links');
-      wrap.innerHTML = '';
+    document.getElementById("save").onclick = saveState;
 
-      (links.length ? links : [{label:'Instagram', url:'https://instagram.com/'}]).forEach((l, idx) => {
-        const item = document.createElement('div');
-        item.className = 'linkItem';
-        item.setAttribute('data-link','1');
-
-        item.innerHTML = `
-          <div class="linkItemHead">
-            <div class="tag">Link ${idx+1}</div>
-            <button type="button" data-remove>Remove</button>
-          </div>
-          <div class="row">
-            <div>
-              <label>Label</label>
-              <input data-label value="${escapeHtml(l.label || '')}" placeholder="Label (e.g., Instagram)" />
-            </div>
-            <div>
-              <label>URL</label>
-              <input data-url value="${escapeHtml(l.url || '')}" placeholder="https://..." />
-            </div>
-          </div>
-        `;
-
-        item.querySelector('[data-remove]').addEventListener('click', () => {
-          item.remove();
-        });
-
-        wrap.appendChild(item);
-      });
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#039;");
-    }
-
-    async function loadFanContent() {
-      const res = await fetch(fanContentUrl, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Failed to load Fan App content.json (${res.status})`);
-      return await res.json();
-    }
-
-    function enableExportButtons(on) {
-      el('copyBtn').disabled = !on;
-      el('downloadBtn').disabled = !on;
-    }
-
-    function downloadJson(filename, text) {
-      const blob = new Blob([text], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(a.href);
-    }
-
-    // Wiring
-    el('addLinkBtn').addEventListener('click', () => {
-      const wrap = el('links');
-      const count = wrap.querySelectorAll('[data-link]').length;
-      const next = { label: `Link ${count+1}`, url: 'https://' };
-      const current = collectWorking();
-      current.links.push(next);
-      renderLinks(current.links);
-    });
-
-    el('resetBtn').addEventListener('click', () => {
-      if (!state.loaded) return;
-      state.working = JSON.parse(JSON.stringify(state.loaded));
-      fillControls(state.working);
-      renderMirror(state.loaded);
-      enableExportButtons(false);
-      setStatus(true, 'Reset to loaded');
-    });
-
-    el('mode').addEventListener('change', () => {
-      el('modePill').textContent = el('mode').value;
-    });
-
-    el('generateBtn').addEventListener('click', () => {
-      const obj = collectWorking();
-      state.working = obj;
-      const json = JSON.stringify(obj, null, 2);
-      renderMirror(obj);
-      enableExportButtons(true);
-      setStatus(true, 'Generated updated content.json (not published)');
-      el('copyBtn').dataset.payload = json;
-      el('downloadBtn').dataset.payload = json;
-    });
-
-    el('copyBtn').addEventListener('click', async () => {
-      const payload = el('copyBtn').dataset.payload || '';
-      if (!payload) return;
-      await navigator.clipboard.writeText(payload);
-      setStatus(true, 'Copied JSON to clipboard');
-    });
-
-    el('downloadBtn').addEventListener('click', () => {
-      const payload = el('downloadBtn').dataset.payload || '';
-      if (!payload) return;
-      downloadJson('content.json', payload);
-      setStatus(true, 'Downloaded content.json (replace Fan App/content.json)');
-    });
-
-    // Init
-    (async () => {
-      try {
-        const data = await loadFanContent();
-        state.loaded = data;
-        state.working = JSON.parse(JSON.stringify(data));
-        renderMirror(data);
-        fillControls(data);
-        enableExportButtons(false);
-        setStatus(true, 'Loaded Fan App content.json');
-      } catch (e) {
-        renderMirror({ error: String(e) });
-        setStatus(false, String(e));
+    /* preload existing state */
+    try {
+      const raw = localStorage.getItem(CREATOR_LAND_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.name) document.getElementById("name").value = s.name;
+        if (s.bio) document.getElementById("bio").value = s.bio;
+        if (s.bg) document.getElementById("bg").value = s.bg;
       }
-    })();
+    } catch {}
   </script>
 </body>
 </html>
