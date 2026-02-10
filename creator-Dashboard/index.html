@@ -2,200 +2,183 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b0b0b" />
   <title>Creator Dashboard</title>
 
-  <!-- PWA for Creator Dashboard -->
   <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#0b0b0f" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
   <style>
     :root{
-      --bg:#07070a; --panel:#0f1016; --panel2:#12131b;
-      --text:#f3f4f6; --muted:#a7aab3; --line:#232434;
-      --ok:#2ee59d; --bad:#ff4d6d; --warn:#fbbf24;
-      --btn:#1b1c28; --btn2:#22243a;
-      --radius:18px;
+      --bg:#0b0b0b; --panel:#121212; --panel2:#171717; --stroke:#2a2a2a;
+      --text:#eaeaea; --muted:#a7a7a7; --good:#34d399; --bad:#fb7185;
+      --btn:#1f1f1f; --btn2:#232323; --radius:18px;
     }
     *{box-sizing:border-box}
     body{
-      margin:0; color:var(--text); background:radial-gradient(1200px 800px at 10% 0%, #141528 0%, var(--bg) 55%);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      margin:0; padding:24px;
+      background:var(--bg); color:var(--text);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     }
-    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .wrap{max-width:1100px;margin:0 auto}
     .top{
-      display:flex;align-items:center;gap:12px;justify-content:space-between;
-      padding:14px 14px;border:1px solid var(--line);border-radius:24px;background:rgba(15,16,22,.8);
-      backdrop-filter: blur(10px);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:18px 18px; border:1px solid var(--stroke);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:var(--radius);
     }
-    .brand{display:flex;align-items:center;gap:12px}
-    .badge{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#131526;border:1px solid var(--line);font-weight:800}
-    .title{font-size:22px;font-weight:800;line-height:1}
-    .sub{color:var(--muted);font-size:12px;margin-top:4px}
-    .pills{display:flex;gap:10px;flex-wrap:wrap}
-    .pill{padding:8px 12px;border-radius:999px;background:#11121a;border:1px solid var(--line);color:var(--muted);font-size:12px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
-    @media (max-width: 900px){ .grid{grid-template-columns:1fr} }
+    .title{display:flex;align-items:center;gap:12px}
+    .badge{
+      width:44px;height:44px;border-radius:14px;background:#101010;
+      border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;
+      font-weight:700;
+    }
+    h1{font-size:22px;margin:0}
+    .sub{color:var(--muted);font-size:13px;margin-top:2px}
+    .pillrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .pill{
+      padding:10px 12px;border:1px solid var(--stroke);
+      border-radius:999px;background:#101010;color:var(--muted);font-size:13px;
+    }
+    .grid{
+      margin-top:16px;
+      display:grid; grid-template-columns:1.15fr 0.85fr; gap:14px;
+    }
     .card{
-      border:1px solid var(--line);border-radius:var(--radius);
-      background:rgba(15,16,22,.85);backdrop-filter: blur(10px);
-      padding:14px;
+      border:1px solid var(--stroke);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:var(--radius);
+      padding:16px;
+      min-height:120px;
     }
-    .card h3{margin:0 0 10px 0;font-size:14px;color:var(--muted);font-weight:700}
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    .card h2{margin:0 0 12px 0;font-size:15px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 0}
     input, textarea, select{
-      width:100%; padding:12px 12px; border-radius:14px;
-      border:1px solid var(--line); background:var(--panel2); color:var(--text);
+      width:100%;
+      background:#0f0f0f;
+      border:1px solid var(--stroke);
+      color:var(--text);
+      border-radius:14px;
+      padding:12px;
       outline:none;
     }
-    textarea{min-height:88px;resize:vertical}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width: 700px){ .row{grid-template-columns:1fr} }
+    textarea{min-height:90px;resize:vertical}
     .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     button{
-      border:1px solid var(--line); background:var(--btn); color:var(--text);
-      padding:12px 14px;border-radius:14px;font-weight:700;cursor:pointer;
+      border:1px solid var(--stroke);
+      background:var(--btn);
+      color:var(--text);
+      border-radius:14px;
+      padding:11px 12px;
+      cursor:pointer;
     }
     button:hover{background:var(--btn2)}
-    .primary{border-color:#2b2e52;background:#1a1b2e}
-    .primary:hover{background:#202146}
-    .danger{border-color:#4a1b25;background:#1a1013}
-    .danger:hover{background:#241217}
-    .status{margin-top:10px;font-size:12px;color:var(--muted)}
-    .status strong{color:var(--text)}
+    .danger{border-color:#3a1b1b;background:#160c0c}
+    .good{border-color:#1f3b2d;background:#0c1612}
+    .small{font-size:12px;color:var(--muted);line-height:1.4}
     pre{
-      margin:0; padding:12px; background:#0b0c12;border:1px solid var(--line);
-      border-radius:14px; overflow:auto; min-height:320px;
+      margin:0; padding:12px; background:#0f0f0f;
+      border:1px solid var(--stroke); border-radius:14px;
+      color:#eaeaea; overflow:auto; max-height:420px;
     }
-    .small{font-size:11px;color:var(--muted);line-height:1.35}
-    .hr{height:1px;background:var(--line);margin:12px 0}
+    .status{
+      margin-top:10px; font-size:12px; color:var(--muted);
+      display:flex; align-items:center; gap:8px;
+    }
+    .dot{width:10px;height:10px;border-radius:99px;background:var(--bad)}
+    .dot.on{background:var(--good)}
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      body{padding:16px}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="brand">
+      <div class="title">
         <div class="badge">DJ</div>
         <div>
-          <div class="title">Creator Dashboard</div>
-          <div class="sub">Base Free — controller that publishes to Fan App (no JSON editing)</div>
+          <h1>Creator Dashboard</h1>
+          <div class="sub">Base Free — creator controls (no JSON editing)</div>
         </div>
       </div>
-      <div class="pills">
+      <div class="pillrow">
         <div class="pill" id="pillMode">Mode: —</div>
         <div class="pill" id="pillUpdated">Updated: —</div>
-        <div class="pill" id="pillDeploy">Deploy: —</div>
+        <div class="pill" id="pillToken">Key: —</div>
       </div>
     </div>
 
     <div class="grid">
       <div class="card">
-        <h3>Authority (Creator “house key”)</h3>
-
-        <div class="small">
-          This is the only “key” needed in V1. It is NOT universal. It lives only on your device and can be changed any time.
-        </div>
-
-        <label>GitHub Repo Owner</label>
-        <input id="ghOwner" value="soliddreamz" />
-
-        <label>GitHub Repo Name</label>
-        <input id="ghRepo" value="Base-Creator-Land" />
-
-        <label>Branch</label>
-        <input id="ghBranch" value="main" />
-
-        <label>Path to Fan config file (do not rename folders)</label>
-        <input id="ghPath" value="Fan App/content.json" />
-
-        <label>GitHub Token (classic PAT with repo contents write)</label>
-        <input id="ghToken" type="password" placeholder="Paste token once. Stored locally on this device." />
-
-        <div class="btnrow">
-          <button class="primary" id="btnSaveAuth">Save Key (local)</button>
-          <button class="danger" id="btnClearAuth">Remove Key (local)</button>
-          <button id="btnTestAuth">Test Key</button>
-        </div>
-
-        <div class="status" id="authStatus">Status: <strong>Not tested</strong></div>
-
-        <div class="hr"></div>
-
-        <h3>Controls (what fans will see)</h3>
-
-        <label>Creator name</label>
-        <input id="creatorName" />
-
-        <label>Bio</label>
-        <textarea id="creatorBio"></textarea>
+        <h2>Controls</h2>
 
         <div class="row">
+          <div>
+            <label>Creator name</label>
+            <input id="name" type="text" placeholder="Creator Name" />
+          </div>
           <div>
             <label>Mode</label>
-            <select id="creatorMode">
+            <select id="mode">
               <option value="TEST">TEST</option>
               <option value="LIVE">LIVE</option>
-              <option value="BUILD">BUILD</option>
             </select>
-          </div>
-          <div>
-            <label>Updated (auto)</label>
-            <input id="creatorUpdated" disabled />
           </div>
         </div>
 
-        <div class="row">
+        <div style="margin-top:12px;">
+          <label>Bio</label>
+          <textarea id="bio" placeholder="Short bio..."></textarea>
+        </div>
+
+        <div class="row" style="margin-top:12px;">
           <div>
             <label>Live isLive</label>
-            <select id="liveIsLive">
+            <select id="isLive">
               <option value="false">false</option>
               <option value="true">true</option>
             </select>
           </div>
           <div>
             <label>Live URL</label>
-            <input id="liveUrl" placeholder="https://..." />
+            <input id="liveUrl" type="url" placeholder="https://..." />
           </div>
         </div>
 
-        <label>Notes (creator-only)</label>
-        <textarea id="creatorNotes" placeholder="- Goal:\n- What worked:\n- What failed:\n- Next change (creator repo only):\n"></textarea>
-
         <div class="btnrow">
-          <button id="btnLoad">Load current (from Fan App/content.json)</button>
-          <button id="btnPreview">Preview JSON</button>
-          <button class="primary" id="btnPublish">PUBLISH to Fans (commit + deploy)</button>
+          <button class="good" id="btnPush">Push preview to Fan App (realtime)</button>
+          <button id="btnOpenFan">Open Fan App preview</button>
+          <button id="btnRotate">Change Key (rotate)</button>
+          <button class="danger" id="btnReset">Reset dashboard</button>
         </div>
 
-        <div class="status" id="ctlStatus">Status: <strong>Idle</strong></div>
+        <div class="status">
+          <span class="dot" id="dot"></span>
+          <span id="statusText">Not pushed yet</span>
+        </div>
+
+        <div class="small" style="margin-top:10px;">
+          This dashboard sends updates to the Fan App **without** touching GitHub files.
+          Fans do not see these changes unless the Fan App is opened in preview mode.
+        </div>
       </div>
 
       <div class="card">
-        <h3>Read-only mirror (what is currently published)</h3>
-        <pre id="mirror">{}</pre>
-        <div class="status" id="mirrorStatus">Status: <strong>Not loaded</strong></div>
-
-        <div class="hr"></div>
-
-        <h3>Deploy check</h3>
-        <div class="small">
-          After publish, GitHub Pages needs a moment. This shows last commit SHA + latest Pages deployment status.
-        </div>
-        <div class="btnrow">
-          <button id="btnCheckDeploy">Check Deploy</button>
-        </div>
-        <div class="status" id="deployStatus">Status: <strong>Not checked</strong></div>
+        <h2>Preview payload (what will be sent)</h2>
+        <pre id="preview">{}</pre>
       </div>
     </div>
   </div>
 
   <script src="./dashboard.js"></script>
+
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+    // PWA install support for creator dashboard
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
     }
   </script>
 </body>
