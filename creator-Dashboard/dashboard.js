@@ -1,227 +1,298 @@
-/* Creator Dashboard — Base Free V1
-   - No JSON copy/paste
-   - Realtime preview to Fan App using BroadcastChannel
-   - Creator-owned changeable key (token)
+/* BASE Creator Dashboard — V1
+   - Reads Fan App/content.json (public URL)
+   - Publishes updates by committing Fan App/content.json via GitHub API (authority gate = token)
+   - No backend. GitHub Pages limit respected.
 */
+(() => {
+  // ===== CONFIG (locked to your repo) =====
+  const OWNER = "soliddreamz";
+  const REPO = "Base-Creator-Land";
+  const BRANCH = "main";
+  const TARGET_PATH = "Fan App/content.json"; // exact repo path (space matters)
 
-(function () {
-  const CH = "base_creator_preview_channel_v1";
-  const LS_TOKEN = "base_creator_preview_token_v1";
-  const LS_DRAFT = "base_creator_preview_draft_v1";
+  // Fan App content.json public URL (for reading)
+  const DEFAULT_CONTENT_URL = `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
 
-  const el = (id) => document.getElementById(id);
+  // ===== DOM =====
+  const $ = (id) => document.getElementById(id);
 
-  const $name = el("name");
-  const $bio = el("bio");
-  const $mode = el("mode");
-  const $isLive = el("isLive");
-  const $liveUrl = el("liveUrl");
+  const el = {
+    repoLabel: $("repoLabel"),
+    token: $("token"),
+    contentUrl: $("contentUrl"),
+    btnLoad: $("btnLoad"),
+    btnPublish: $("btnPublish"),
+    btnResetToken: $("btnResetToken"),
+    isLive: $("isLive"),
+    liveTitle: $("liveTitle"),
+    streamUrl: $("streamUrl"),
+    announcement: $("announcement"),
+    theme: $("theme"),
+    archive: $("archive"),
+    preview: $("preview"),
+    status: $("status"),
+    lastSha: $("lastSha"),
+    livePill: $("livePill"),
+  };
 
-  const $preview = el("preview");
-  const $pillMode = el("pillMode");
-  const $pillUpdated = el("pillUpdated");
-  const $pillToken = el("pillToken");
+  // ===== STATE =====
+  const LS_TOKEN = "base_creator_token_v1";
+  let lastRemoteSha = null;
+  let lastLoadedJson = null;
 
-  const $dot = el("dot");
-  const $status = el("statusText");
-
-  const $btnPush = el("btnPush");
-  const $btnOpenFan = el("btnOpenFan");
-  const $btnRotate = el("btnRotate");
-  const $btnReset = el("btnReset");
-
-  const channel = ("BroadcastChannel" in window) ? new BroadcastChannel(CH) : null;
-
-  function nowDateISO() {
-    // YYYY-MM-DD
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+  // ===== HELPERS =====
+  function log(line) {
+    const stamp = new Date().toLocaleString();
+    el.status.textContent = `[${stamp}] ${line}\n` + el.status.textContent;
   }
 
-  function randomToken() {
-    // creator-owned preview key
-    // short, readable, enough uniqueness for preview gate
-    const a = crypto.getRandomValues(new Uint32Array(4));
-    return Array.from(a).map(n => n.toString(16).padStart(8, "0")).join("").slice(0, 16);
+  function setPill(type, text) {
+    el.livePill.className = `pill ${type}`;
+    el.livePill.textContent = text;
   }
 
-  function getToken() {
-    let t = localStorage.getItem(LS_TOKEN);
-    if (!t) {
-      t = randomToken();
-      localStorage.setItem(LS_TOKEN, t);
-    }
-    return t;
+  function safeJsonParse(s) {
+    try { return { ok: true, value: JSON.parse(s) }; }
+    catch (e) { return { ok: false, error: e }; }
   }
 
-  function setToken(t) {
-    localStorage.setItem(LS_TOKEN, t);
-    renderPills();
-  }
-
-  function buildPayload() {
-    const token = getToken();
-
-    const payload = {
-      v: 1,
-      token,
-      updated: nowDateISO(),
-      name: ($name.value || "Creator Name").trim(),
-      bio: ($bio.value || "This is my home on the web.").trim(),
-      mode: $mode.value || "TEST",
-      live: {
-        isLive: ($isLive.value === "true"),
-        url: ($liveUrl.value || "").trim()
-      }
+  function buildDraft() {
+    // Controlled shape. (No raw file editing.)
+    const draft = {
+      isLive: el.isLive.value === "true",
+      liveTitle: (el.liveTitle.value || "").trim(),
+      streamUrl: (el.streamUrl.value || "").trim(),
+      announcement: (el.announcement.value || "").trim(),
+      theme: (el.theme.value || "").trim(),
     };
 
-    return payload;
+    // Optional archive array from textarea (must be valid JSON array or empty)
+    const archRaw = (el.archive.value || "").trim();
+    if (archRaw) {
+      const parsed = safeJsonParse(archRaw);
+      if (!parsed.ok || !Array.isArray(parsed.value)) {
+        throw new Error("archive must be valid JSON ARRAY (or empty).");
+      }
+      draft.archive = parsed.value;
+    } else {
+      // keep absent (clean)
+    }
+
+    // Remove empty strings for cleanliness
+    Object.keys(draft).forEach((k) => {
+      if (typeof draft[k] === "string" && draft[k] === "") delete draft[k];
+    });
+
+    return draft;
   }
 
-  function saveDraft(payload) {
-    localStorage.setItem(LS_DRAFT, JSON.stringify(payload));
-  }
-
-  function loadDraft() {
+  function refreshPreview() {
     try {
-      const raw = localStorage.getItem(LS_DRAFT);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch {
-      return null;
+      const draft = buildDraft();
+      el.preview.value = JSON.stringify(draft, null, 2);
+      if (draft.isLive) setPill("ok", "STATUS: LIVE = true");
+      else setPill("warn", "STATUS: LIVE = false");
+      return true;
+    } catch (e) {
+      el.preview.value = `// Preview error: ${e.message}`;
+      setPill("bad", "STATUS: invalid input");
+      return false;
     }
   }
 
-  function applyToForm(payload) {
-    $name.value = payload?.name ?? "Creator Name";
-    $bio.value = payload?.bio ?? "This is my home on the web.";
-    $mode.value = payload?.mode ?? "TEST";
-    $isLive.value = String(payload?.live?.isLive ?? false);
-    $liveUrl.value = payload?.live?.url ?? "";
+  function requireToken() {
+    const token = (el.token.value || "").trim();
+    if (!token) throw new Error("Missing creator token. (Authority gate)");
+    return token;
   }
 
-  function renderPreview(payload) {
-    $preview.textContent = JSON.stringify(payload, null, 2);
+  function ghHeaders(token) {
+    // Fine-grained PAT works with "Bearer"
+    return {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json",
+    };
   }
 
-  function renderPills() {
-    const token = getToken();
-    $pillMode.textContent = `Mode: ${$mode.value || "—"}`;
-    $pillUpdated.textContent = `Updated: ${nowDateISO()}`;
-    $pillToken.textContent = `Key: ${token}`;
+  function toBase64Utf8(str) {
+    // Proper UTF-8 base64
+    const utf8 = new TextEncoder().encode(str);
+    let bin = "";
+    utf8.forEach((b) => bin += String.fromCharCode(b));
+    return btoa(bin);
   }
 
-  function setStatus(ok, text) {
-    $dot.classList.toggle("on", !!ok);
-    $status.textContent = text;
+  async function fetchPublicContentJson(url) {
+    // cache-bust + no-store
+    const u = new URL(url);
+    u.searchParams.set("ts", String(Date.now()));
+    const res = await fetch(u.toString(), { cache: "no-store" });
+    if (!res.ok) throw new Error(`Failed to load content.json (${res.status})`);
+    return await res.json();
   }
 
-  function pushPreview() {
-    const payload = buildPayload();
-    saveDraft(payload);
-    renderPreview(payload);
-    renderPills();
-
-    if (!channel) {
-      setStatus(false, "BroadcastChannel not available in this browser");
-      return;
+  async function ghGetFileMeta(token) {
+    const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}?ref=${encodeURIComponent(BRANCH)}`;
+    const res = await fetch(api, { headers: ghHeaders(token) });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`GitHub GET contents failed (${res.status}). ${txt.slice(0, 180)}`);
     }
+    const data = await res.json();
+    if (!data || !data.sha) throw new Error("GitHub response missing sha.");
+    return { sha: data.sha, api };
+  }
 
-    channel.postMessage({
-      type: "BASE_CREATOR_PREVIEW_PUSH",
-      payload
+  async function ghPutContentJson(token, sha, jsonText) {
+    const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}`;
+
+    const body = {
+      message: `BASE V1: publish content.json via Creator Dashboard`,
+      content: toBase64Utf8(jsonText),
+      sha,
+      branch: BRANCH,
+    };
+
+    const res = await fetch(api, {
+      method: "PUT",
+      headers: ghHeaders(token),
+      body: JSON.stringify(body),
     });
 
-    setStatus(true, "Pushed preview to Fan App (open Fan App preview tab)");
-  }
-
-  function openFanPreview() {
-    // Opens Fan App in preview mode WITH token automatically
-    // No manual typing.
-    const token = getToken();
-
-    // Fan App path EXACTLY as your repo folder name:
-    // Base-Creator-Land/Fan App/
-    const url = new URL(window.location.href);
-
-    // Replace /creator-Dashboard/ with /Fan%20App/
-    // (space in folder name must be encoded)
-    url.pathname = url.pathname.replace(/\/creator-Dashboard\/?$/, "/Fan%20App/");
-    url.searchParams.set("preview", "1");
-    url.searchParams.set("token", token);
-
-    window.open(url.toString(), "_blank", "noopener,noreferrer");
-    setStatus(true, "Opened Fan App preview (token auto-applied)");
-  }
-
-  function rotateToken() {
-    const newToken = randomToken();
-    setToken(newToken);
-
-    // also update draft token so next push matches
-    const d = loadDraft();
-    if (d) {
-      d.token = newToken;
-      saveDraft(d);
-      renderPreview(d);
-    } else {
-      renderPreview(buildPayload());
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`GitHub PUT failed (${res.status}). ${txt.slice(0, 220)}`);
     }
 
-    setStatus(true, "Key rotated (open Fan App preview again)");
+    const data = await res.json();
+    const newSha = data?.content?.sha || data?.commit?.sha || null;
+    return { newSha, data };
   }
 
-  function resetAll() {
-    localStorage.removeItem(LS_DRAFT);
-    // keep token (creator key) unless you want reset it too
-    // localStorage.removeItem(LS_TOKEN);
+  function fillFromJson(obj) {
+    // Tolerant read (if older file has extra keys, we ignore)
+    el.isLive.value = (obj?.isLive === true) ? "true" : "false";
+    el.liveTitle.value = obj?.liveTitle || "";
+    el.streamUrl.value = obj?.streamUrl || "";
+    el.announcement.value = obj?.announcement || "";
+    el.theme.value = obj?.theme || "";
 
-    const payload = buildPayload();
-    applyToForm(payload);
-    renderPreview(payload);
-    renderPills();
-    setStatus(false, "Dashboard reset (not pushed)");
+    if (Array.isArray(obj?.archive)) el.archive.value = JSON.stringify(obj.archive, null, 2);
+    else el.archive.value = "";
+
+    lastLoadedJson = obj;
+    refreshPreview();
   }
 
-  // Live update preview as you type (controller feel)
-  function onInput() {
-    const payload = buildPayload();
-    saveDraft(payload);
-    renderPreview(payload);
-    renderPills();
+  function enablePublishIfReady() {
+    const hasToken = (el.token.value || "").trim().length > 0;
+    const previewOk = refreshPreview();
+    el.btnPublish.disabled = !(hasToken && previewOk && lastRemoteSha);
   }
 
-  // Init
-  (function init() {
-    const token = getToken();
+  // ===== EVENTS =====
+  el.token.addEventListener("input", () => {
+    const t = (el.token.value || "").trim();
+    if (t) localStorage.setItem(LS_TOKEN, t);
+    enablePublishIfReady();
+  });
 
-    const draft = loadDraft();
-    if (draft) {
-      // Force token consistency with current token
-      draft.token = token;
-      applyToForm(draft);
-      renderPreview(draft);
-    } else {
-      const payload = buildPayload();
-      applyToForm(payload);
-      renderPreview(payload);
-      saveDraft(payload);
+  ["change", "input"].forEach((evt) => {
+    el.isLive.addEventListener(evt, enablePublishIfReady);
+    el.liveTitle.addEventListener(evt, enablePublishIfReady);
+    el.streamUrl.addEventListener(evt, enablePublishIfReady);
+    el.announcement.addEventListener(evt, enablePublishIfReady);
+    el.theme.addEventListener(evt, enablePublishIfReady);
+    el.archive.addEventListener(evt, enablePublishIfReady);
+  });
+
+  el.btnResetToken.addEventListener("click", () => {
+    localStorage.removeItem(LS_TOKEN);
+    el.token.value = "";
+    log("Token cleared (local device). Publish disabled.");
+    enablePublishIfReady();
+  });
+
+  el.btnLoad.addEventListener("click", async () => {
+    try {
+      setPill("warn", "STATUS: loading…");
+      log("Loading current Fan App/content.json (public)…");
+
+      const url = (el.contentUrl.value || DEFAULT_CONTENT_URL).trim();
+      const current = await fetchPublicContentJson(url);
+
+      log("Loaded public content.json.");
+      fillFromJson(current);
+
+      // If token exists, also fetch sha so publish is possible
+      const token = (el.token.value || "").trim() || localStorage.getItem(LS_TOKEN) || "";
+      if (token) {
+        log("Fetching GitHub file sha (authority path)…");
+        const meta = await ghGetFileMeta(token);
+        lastRemoteSha = meta.sha;
+        el.lastSha.textContent = `sha: ${lastRemoteSha}`;
+        log(`GitHub sha loaded: ${lastRemoteSha}`);
+      } else {
+        lastRemoteSha = null;
+        el.lastSha.textContent = "sha: —";
+        log("No token present. Sha not loaded. Publish remains disabled.");
+      }
+
+      enablePublishIfReady();
+      log("Ready.");
+    } catch (e) {
+      setPill("bad", "STATUS: load failed");
+      log(`ERROR: ${e.message}`);
+      enablePublishIfReady();
     }
+  });
 
-    renderPills();
-    setStatus(false, "Ready");
+  el.btnPublish.addEventListener("click", async () => {
+    try {
+      const token = requireToken();
 
-    [$name, $bio, $mode, $isLive, $liveUrl].forEach(inp => {
-      inp.addEventListener("input", onInput);
-      inp.addEventListener("change", onInput);
-    });
+      // Always re-fetch sha right before publishing (avoid conflicts)
+      log("Re-checking GitHub sha…");
+      const meta = await ghGetFileMeta(token);
+      lastRemoteSha = meta.sha;
+      el.lastSha.textContent = `sha: ${lastRemoteSha}`;
 
-    $btnPush.addEventListener("click", pushPreview);
-    $btnOpenFan.addEventListener("click", openFanPreview);
-    $btnRotate.addEventListener("click", rotateToken);
-    $btnReset.addEventListener("click", resetAll);
-  })();
+      const draft = buildDraft();
+      const jsonText = JSON.stringify(draft, null, 2);
+
+      log("Publishing (committing) to repo…");
+      const result = await ghPutContentJson(token, lastRemoteSha, jsonText);
+
+      const newSha = result.newSha || "(sha updated)";
+      lastRemoteSha = result.data?.content?.sha || lastRemoteSha;
+      el.lastSha.textContent = `sha: ${lastRemoteSha}`;
+
+      log(`Publish success. New sha: ${newSha}`);
+      setPill(draft.isLive ? "ok" : "warn", draft.isLive ? "STATUS: LIVE published" : "STATUS: not-live published");
+      enablePublishIfReady();
+    } catch (e) {
+      setPill("bad", "STATUS: publish failed");
+      log(`ERROR: ${e.message}`);
+      enablePublishIfReady();
+    }
+  });
+
+  // ===== INIT =====
+  function init() {
+    el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
+    el.contentUrl.value = DEFAULT_CONTENT_URL;
+
+    // restore token (local device only)
+    const saved = localStorage.getItem(LS_TOKEN);
+    if (saved) el.token.value = saved;
+
+    refreshPreview();
+    setPill("warn", "STATUS: not loaded");
+    log("Open Dashboard → paste token → Load Current State → Publish.");
+    enablePublishIfReady();
+  }
+
+  init();
 })();
