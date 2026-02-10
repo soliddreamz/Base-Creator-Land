@@ -1,179 +1,285 @@
-/* Base Free Live Bridge (no backend)
-   - BroadcastChannel sends updates to Fan App instantly (same origin).
-   - Creator-changeable key (NOT universal).
-*/
-(() => {
-  const CHANNEL_NAME = "base-live-bridge";
-  const bc = ("BroadcastChannel" in window) ? new BroadcastChannel(CHANNEL_NAME) : null;
+// Creator Dashboard V1
+// - Reads Fan App/content.json from same repo
+// - Writes back to Fan App/content.json by committing via GitHub API
+// - No manual JSON. No copy/paste. No shared universal key.
+// - Creator token is stored only in localStorage on this device.
 
-  const el = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
-  const state = {
-    bridgeOn: false,
-    key: "",
-    app: {
-      name: "Creator Name",
-      bio: "This is my home on the web.",
-      welcome: "Welcome to my Base.",
-      mode: "TEST",
-      updated: "",
-      live: { isLive: false, url: "" },
-      links: [
-        { label: "Instagram", url: "https://instagram.com/" },
-        { label: "YouTube", url: "https://youtube.com/" }
-      ],
-      media: [
-        { title: "Latest Drop", subtitle: "new", url: "" }
-      ]
+const AUTH_KEY = "base_creator_auth_v1";
+
+function nowISODate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function setStatus(el, text) {
+  el.innerHTML = `Status: <strong>${text}</strong>`;
+}
+
+function setPills({mode, updated, deploy}) {
+  $("pillMode").textContent = `Mode: ${mode ?? "—"}`;
+  $("pillUpdated").textContent = `Updated: ${updated ?? "—"}`;
+  $("pillDeploy").textContent = `Deploy: ${deploy ?? "—"}`;
+}
+
+function getAuth() {
+  const raw = localStorage.getItem(AUTH_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function putAuth(auth) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+}
+
+function clearAuth() {
+  localStorage.removeItem(AUTH_KEY);
+}
+
+function currentAuthFromInputs() {
+  return {
+    owner: $("ghOwner").value.trim(),
+    repo: $("ghRepo").value.trim(),
+    branch: $("ghBranch").value.trim(),
+    path: $("ghPath").value.trim(),
+    token: $("ghToken").value.trim(),
+  };
+}
+
+function hydrateAuthInputs() {
+  const a = getAuth();
+  if (!a) return;
+  $("ghOwner").value = a.owner || $("ghOwner").value;
+  $("ghRepo").value = a.repo || $("ghRepo").value;
+  $("ghBranch").value = a.branch || $("ghBranch").value;
+  $("ghPath").value = a.path || $("ghPath").value;
+  // do NOT auto-fill token field for safety; keep token stored but not shown
+}
+
+function getToken() {
+  // Prefer input if user pasted a new one; else use stored.
+  const inputTok = $("ghToken").value.trim();
+  if (inputTok) return inputTok;
+  const a = getAuth();
+  return a?.token || "";
+}
+
+function saveAuthFromInputs() {
+  const a = currentAuthFromInputs();
+  // if token input blank but stored exists, preserve stored token
+  const stored = getAuth();
+  if (!a.token && stored?.token) a.token = stored.token;
+  putAuth(a);
+}
+
+function ghHeaders() {
+  const token = getToken();
+  if (!token) throw new Error("Missing token");
+  return {
+    "Accept": "application/vnd.github+json",
+    "Authorization": `Bearer ${token}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+
+function baseApiUrl() {
+  const a = currentAuthFromInputs();
+  return `https://api.github.com/repos/${encodeURIComponent(a.owner)}/${encodeURIComponent(a.repo)}`;
+}
+
+async function ghFetch(url, opts = {}) {
+  const headers = Object.assign({}, opts.headers || {}, ghHeaders());
+  const res = await fetch(url, { ...opts, headers });
+  if (!res.ok) {
+    const txt = await res.text().catch(()=> "");
+    throw new Error(`GitHub API error ${res.status}: ${txt || res.statusText}`);
+  }
+  return res.json();
+}
+
+async function fetchFileContentJSON() {
+  const a = currentAuthFromInputs();
+  const api = baseApiUrl();
+  const url = `${api}/contents/${encodeURIComponent(a.path)}?ref=${encodeURIComponent(a.branch)}`;
+  const data = await ghFetch(url);
+  if (!data.content) throw new Error("No content field in GitHub response");
+  const decoded = atob(data.content.replace(/\n/g, ""));
+  const json = JSON.parse(decoded);
+  return { json, sha: data.sha };
+}
+
+function buildNextJSON() {
+  const isLive = $("liveIsLive").value === "true";
+  const obj = {
+    name: $("creatorName").value.trim() || "Creator Name",
+    bio: $("creatorBio").value.trim() || "",
+    mode: $("creatorMode").value,
+    updated: nowISODate(),
+    live: {
+      isLive,
+      url: $("liveUrl").value.trim() || ""
+    },
+    notes: {
+      session: $("creatorNotes").value || ""
     }
   };
+  // links: keep simple v1 (2 links) but allow empty
+  obj.links = [];
+  // If you later add UI rows for multiple links, expand here.
+  // For now mirror your existing screenshot structure:
+  obj.links.push({ label: "Instagram", url: "https://instagram.com/" });
+  obj.links.push({ label: "YouTube", url: "https://youtube.com/" });
 
-  function todayISO(){
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    return `${yyyy}-${mm}-${dd}`;
+  return obj;
+}
+
+function applyJSONToControls(json) {
+  $("creatorName").value = json.name || "";
+  $("creatorBio").value = json.bio || "";
+  $("creatorMode").value = json.mode || "TEST";
+  $("creatorUpdated").value = json.updated || "";
+  $("liveIsLive").value = String(!!json?.live?.isLive);
+  $("liveUrl").value = json?.live?.url || "";
+  $("creatorNotes").value = json?.notes?.session || "";
+
+  setPills({ mode: $("creatorMode").value, updated: json.updated || "—", deploy: "—" });
+}
+
+async function testAuth() {
+  setStatus($("authStatus"), "Testing…");
+  saveAuthFromInputs();
+
+  const a = getAuth() || currentAuthFromInputs();
+  if (!getToken()) {
+    setStatus($("authStatus"), "Missing token");
+    return;
   }
 
-  function randKey(){
-    // short + readable
-    return Math.random().toString(36).slice(2, 8) + "-" + Math.random().toString(36).slice(2, 8);
+  try {
+    const api = baseApiUrl();
+    const repo = await ghFetch(api);
+    setStatus($("authStatus"), `OK — ${repo.full_name}`);
+  } catch (e) {
+    setStatus($("authStatus"), `FAIL — ${e.message}`);
   }
+}
 
-  function setBridgeUI(on){
-    state.bridgeOn = on;
-
-    const dot = el("bridgeDot");
-    dot.classList.remove("good","warn","bad");
-    dot.classList.add(on ? "good" : "bad");
-
-    el("bridgeText").textContent = on ? "Bridge: ON" : "Bridge: OFF";
-    el("toggleBridgeBtn").textContent = on ? "Turn Bridge OFF" : "Turn Bridge ON";
+async function loadCurrent() {
+  setStatus($("mirrorStatus"), "Loading…");
+  setStatus($("ctlStatus"), "Loading current…");
+  try {
+    const { json } = await fetchFileContentJSON();
+    $("mirror").textContent = JSON.stringify(json, null, 2);
+    applyJSONToControls(json);
+    setStatus($("mirrorStatus"), "Loaded Fan App/content.json");
+    setStatus($("ctlStatus"), "Loaded");
+  } catch (e) {
+    setStatus($("mirrorStatus"), `FAIL — ${e.message}`);
+    setStatus($("ctlStatus"), "Idle");
   }
+}
 
-  function readInputs(){
-    state.app.name = el("nameInput").value.trim() || "Creator Name";
-    state.app.bio = el("bioInput").value || "";
-    state.app.welcome = el("welcomeInput").value || "";
-    state.app.mode = el("modeInput").value || "TEST";
-    state.app.updated = todayISO();
+async function preview() {
+  const next = buildNextJSON();
+  $("mirror").textContent = JSON.stringify(next, null, 2);
+  setStatus($("mirrorStatus"), "Preview (not published)");
+  setPills({ mode: next.mode, updated: next.updated, deploy: "—" });
+}
 
-    const isLive = el("isLiveInput").value === "true";
-    state.app.live.isLive = isLive;
-    state.app.live.url = el("liveUrlInput").value.trim();
+async function publish() {
+  // Commit next JSON to Fan App/content.json
+  setStatus($("ctlStatus"), "Publishing… (commit to repo)");
+  saveAuthFromInputs();
 
-    state.app.links = [
-      { label: el("link1Label").value.trim() || "Instagram", url: el("link1Url").value.trim() || "https://instagram.com/" },
-      { label: el("link2Label").value.trim() || "YouTube",    url: el("link2Url").value.trim() || "https://youtube.com/" }
-    ];
+  try {
+    const a = currentAuthFromInputs();
+    if (!getToken()) throw new Error("Missing token");
+    if (!a.owner || !a.repo || !a.branch || !a.path) throw new Error("Missing repo info");
 
-    state.app.media = [
-      { title: el("media1Title").value.trim() || "Latest Drop",
-        subtitle: el("media1Subtitle").value.trim() || "",
-        url: el("media1Url").value.trim() || "" }
-    ];
-  }
+    const { sha } = await fetchFileContentJSON();
+    const next = buildNextJSON();
+    const contentB64 = btoa(unescape(encodeURIComponent(JSON.stringify(next, null, 2))));
 
-  function renderPayload(){
-    el("updatedInput").value = state.app.updated;
-    el("payloadPre").textContent = JSON.stringify(state.app, null, 2);
-  }
+    const api = baseApiUrl();
+    const url = `${api}/contents/${encodeURIComponent(a.path)}`;
 
-  function broadcast(){
-    if (!bc) return;
-    if (!state.bridgeOn) return;
+    const body = {
+      message: `Base Free V1: update content.json (${next.updated})`,
+      content: contentB64,
+      sha,
+      branch: a.branch
+    };
 
-    const key = (state.key || "").trim();
-    if (!key) return;
-
-    bc.postMessage({
-      type: "APP_UPDATE",
-      key,
-      payload: state.app
-    });
-  }
-
-  function sync(){
-    readInputs();
-    renderPayload();
-    broadcast();
-  }
-
-  function setKey(k){
-    state.key = (k || "").trim();
-    el("keyInput").value = state.key;
-  }
-
-  function openFanPreview(){
-    // Fan folder is "Fan App" (space!) so URL encoding matters.
-    const base = location.origin + location.pathname.replace(/creator-Dashboard\/.*$/,"");
-    const fanUrl = base + "Fan%20App/?key=" + encodeURIComponent(state.key);
-    window.open(fanUrl, "_blank", "noopener");
-  }
-
-  function wire(){
-    // Key
-    el("regenKeyBtn").addEventListener("click", () => {
-      setKey(randKey());
-      sync();
-    });
-
-    el("keyInput").addEventListener("input", () => {
-      state.key = el("keyInput").value.trim();
-      // do NOT auto-broadcast key changes until user types; we still sync to keep preview consistent
-      sync();
+    const result = await ghFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
     });
 
-    // Bridge toggle
-    el("toggleBridgeBtn").addEventListener("click", () => {
-      setBridgeUI(!state.bridgeOn);
-      sync();
-    });
+    $("mirror").textContent = JSON.stringify(next, null, 2);
+    setStatus($("mirrorStatus"), `Published — commit ${result.commit?.sha?.slice(0,7) || "OK"}`);
+    setStatus($("ctlStatus"), "Published. Now wait for Pages deploy.");
+    setPills({ mode: next.mode, updated: next.updated, deploy: "Deploying…" });
 
-    el("openFanPreviewBtn").addEventListener("click", () => {
-      if (!state.key) setKey(randKey());
-      openFanPreview();
-    });
+  } catch (e) {
+    setStatus($("ctlStatus"), `FAIL — ${e.message}`);
+  }
+}
 
-    // Controller changes = immediate sync (DJ controller feel)
-    const ids = [
-      "nameInput","bioInput","welcomeInput","modeInput",
-      "isLiveInput","liveUrlInput",
-      "link1Label","link1Url","link2Label","link2Url",
-      "media1Title","media1Subtitle","media1Url"
-    ];
-    for (const id of ids){
-      el(id).addEventListener("input", sync);
-      el(id).addEventListener("change", sync);
+async function checkDeploy() {
+  setStatus($("deployStatus"), "Checking…");
+  try {
+    saveAuthFromInputs();
+    const api = baseApiUrl();
+
+    // latest commit on branch
+    const a = currentAuthFromInputs();
+    const commits = await ghFetch(`${api}/commits?sha=${encodeURIComponent(a.branch)}&per_page=1`);
+    const sha = commits?.[0]?.sha?.slice(0,7) || "—";
+
+    // pages build status (best effort)
+    // Not every repo exposes detailed status; we still show something.
+    let deploy = "Unknown";
+    try {
+      const pages = await ghFetch(`${api}/pages`);
+      deploy = pages?.status || "OK";
+    } catch {
+      deploy = "OK (no status endpoint)";
     }
+
+    setStatus($("deployStatus"), `Latest commit: ${sha} — Pages: ${deploy}`);
+    setPills({ mode: $("creatorMode").value, updated: $("creatorUpdated").value || "—", deploy });
+  } catch (e) {
+    setStatus($("deployStatus"), `FAIL — ${e.message}`);
   }
+}
 
-  function boot(){
-    // default: creator has control of key (not universal)
-    setKey(randKey());
-    setBridgeUI(false);
+function init() {
+  hydrateAuthInputs();
 
-    // seed inputs
-    el("nameInput").value = state.app.name;
-    el("bioInput").value = state.app.bio;
-    el("welcomeInput").value = state.app.welcome;
-    el("modeInput").value = state.app.mode;
-    el("isLiveInput").value = String(state.app.live.isLive);
-    el("liveUrlInput").value = state.app.live.url;
+  $("creatorUpdated").value = nowISODate();
+  setPills({ mode: "—", updated: "—", deploy: "—" });
 
-    el("link1Label").value = state.app.links[0].label;
-    el("link1Url").value = state.app.links[0].url;
-    el("link2Label").value = state.app.links[1].label;
-    el("link2Url").value = state.app.links[1].url;
+  $("btnSaveAuth").addEventListener("click", () => {
+    saveAuthFromInputs();
+    setStatus($("authStatus"), "Saved locally (changeable)");
+  });
 
-    el("media1Title").value = state.app.media[0].title;
-    el("media1Subtitle").value = state.app.media[0].subtitle;
-    el("media1Url").value = state.app.media[0].url;
+  $("btnClearAuth").addEventListener("click", () => {
+    clearAuth();
+    $("ghToken").value = "";
+    setStatus($("authStatus"), "Removed locally");
+  });
 
-    wire();
-    sync();
-  }
+  $("btnTestAuth").addEventListener("click", testAuth);
+  $("btnLoad").addEventListener("click", loadCurrent);
+  $("btnPreview").addEventListener("click", preview);
+  $("btnPublish").addEventListener("click", publish);
+  $("btnCheckDeploy").addEventListener("click", checkDeploy);
+}
 
-  boot();
-})();
+init();
