@@ -3,25 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Base Creator Dashboard (V1)</title>
-  <meta name="description" content="Creator-controlled state publisher for Fan App (GitHub Pages V1)" />
+  <title>BASE Creator Dashboard — V1</title>
+  <meta name="description" content="Edits Fan App/content.json (name, bio, links) and publishes via GitHub API" />
   <link rel="manifest" href="./manifest.json" />
   <style>
     :root { color-scheme: dark; }
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#000; color:#fff; }
     header { padding:16px; border-bottom:1px solid #222; }
-    main { padding:16px; max-width:900px; margin:0 auto; }
-    .grid { display:grid; gap:12px; }
+    main { padding:16px; max-width:980px; margin:0 auto; display:grid; gap:12px; }
     .card { border:1px solid #222; border-radius:12px; padding:14px; background:#0a0a0a; }
     label { display:block; font-size:12px; opacity:.85; margin-bottom:6px; }
-    input, textarea, select, button {
+    input, textarea, button {
       width:100%; box-sizing:border-box;
       background:#000; color:#fff; border:1px solid #222;
       border-radius:10px; padding:10px; font-size:14px;
     }
     textarea { min-height:120px; resize:vertical; }
     .row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; }
     .btnrow { display:flex; gap:10px; flex-wrap:wrap; }
     button { cursor:pointer; }
     button.primary { border-color:#444; }
@@ -37,93 +35,75 @@
 </head>
 <body>
   <header>
-    <div class="grid">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div>
-          <div style="font-size:18px; font-weight:700;">BASE Creator Dashboard — V1 Publisher</div>
-          <div class="muted">GitHub Pages limit respected: Dashboard commits <span class="mono">Fan App/content.json</span>. Fan App pulls updates.</div>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:18px; font-weight:700;">BASE Creator Dashboard — V1 Publisher</div>
+        <div class="muted">
+          Static hosting limit respected: Dashboard commits <span class="mono">Fan App/content.json</span>, Fan App pulls updates.
         </div>
-        <div id="livePill" class="pill warn">STATUS: not loaded</div>
       </div>
+      <div id="statePill" class="pill warn">STATUS: not loaded</div>
     </div>
   </header>
 
-  <main class="grid">
-    <section class="card grid">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+  <main>
+    <section class="card" style="display:grid; gap:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
         <div class="muted">
           Repo: <span class="mono" id="repoLabel"></span><br/>
-          Target file: <span class="mono">Fan App/content.json</span>
+          Target: <span class="mono">Fan App/content.json</span>
         </div>
         <div class="btnrow">
           <button id="btnLoad" class="primary">Load Current State</button>
-          <button id="btnPublish" class="primary" disabled>Publish to Fan App</button>
+          <button id="btnPublish" class="primary" disabled>Publish</button>
           <button id="btnResetToken" class="danger">Reset Token</button>
         </div>
       </div>
+
       <div class="row">
         <div>
-          <label>Creator Token (fine-grained PAT: Contents read/write for this repo)</label>
+          <label>Creator Token (fine-grained PAT: repo Contents read/write)</label>
           <input id="token" type="password" placeholder="Paste token here (stored locally on this device)" />
-          <div class="muted">This is the authority gate. No token = no publish.</div>
+          <div class="muted">Authority gate. No token = no publish.</div>
         </div>
+
         <div>
           <label>Fan App content.json URL (read)</label>
           <input id="contentUrl" type="text" />
-          <div class="muted">Dashboard reads from this URL; publish writes to repo via API.</div>
+          <div class="muted">Dashboard reads this URL; publish writes to repo via GitHub API.</div>
         </div>
       </div>
     </section>
 
-    <section class="card grid">
-      <div class="row3">
-        <div>
-          <label>isLive</label>
-          <select id="isLive">
-            <option value="false">false</option>
-            <option value="true">true</option>
-          </select>
-        </div>
-        <div>
-          <label>liveTitle</label>
-          <input id="liveTitle" type="text" placeholder="e.g., Live now — DJ set" />
-        </div>
-        <div>
-          <label>streamUrl</label>
-          <input id="streamUrl" type="text" placeholder="https://... (HLS / YouTube / Cloudflare, etc.)" />
-        </div>
-      </div>
-
+    <section class="card" style="display:grid; gap:12px;">
       <div class="row">
         <div>
-          <label>announcement</label>
-          <input id="announcement" type="text" placeholder="Short message for fans" />
+          <label>name</label>
+          <input id="name" type="text" placeholder="Creator Name" />
         </div>
         <div>
-          <label>theme</label>
-          <input id="theme" type="text" placeholder="optional: dark / light / custom" />
+          <label>bio</label>
+          <input id="bio" type="text" placeholder="This is my home on the web." />
         </div>
       </div>
 
       <div>
-        <label>archive (optional array)</label>
-        <textarea id="archive" class="mono" placeholder='Example:
-[
-  {"title":"Replay 1","url":"https://..."},
-  {"title":"Replay 2","url":"https://..."}
+        <label>links (JSON array)</label>
+        <textarea id="links" class="mono" placeholder='[
+  { "label": "Instagram", "url": "https://instagram.com/" },
+  { "label": "YouTube", "url": "https://youtube.com/" }
 ]'></textarea>
-        <div class="muted">Creators never edit the raw file. This is a controlled field (JSON array only).</div>
+        <div class="muted">No manual file editing. You edit here, Dashboard publishes.</div>
       </div>
 
       <div>
         <label>Preview (what will be published)</label>
         <textarea id="preview" class="mono" readonly></textarea>
-        <div class="muted">Publish commits this exact JSON into <span class="mono">Fan App/content.json</span>.</div>
       </div>
     </section>
 
-    <section class="card grid">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+    <section class="card" style="display:grid; gap:12px;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
         <div class="muted">Activity</div>
         <div class="muted mono" id="lastSha">sha: —</div>
       </div>
