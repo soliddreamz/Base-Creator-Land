@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BASE Creator Dashboard — V1</title>
-  <meta name="description" content="Edits Fan App/content.json (name, bio, links) and publishes via GitHub API" />
+  <title>BASE Creator Dashboard — V1 Publisher</title>
+  <meta name="description" content="Edits Fan App/content.json and publishes via GitHub API (no backend)" />
   <link rel="manifest" href="./manifest.json" />
   <style>
     :root { color-scheme: dark; }
@@ -13,7 +13,7 @@
     main { padding:16px; max-width:980px; margin:0 auto; display:grid; gap:12px; }
     .card { border:1px solid #222; border-radius:12px; padding:14px; background:#0a0a0a; }
     label { display:block; font-size:12px; opacity:.85; margin-bottom:6px; }
-    input, textarea, button {
+    input, textarea, button, select{
       width:100%; box-sizing:border-box;
       background:#000; color:#fff; border:1px solid #222;
       border-radius:10px; padding:10px; font-size:14px;
@@ -21,7 +21,7 @@
     textarea { min-height:120px; resize:vertical; }
     .row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     .btnrow { display:flex; gap:10px; flex-wrap:wrap; }
-    button { cursor:pointer; }
+    button { cursor:pointer; width:auto; padding:10px 14px; }
     button.primary { border-color:#444; }
     button.danger { border-color:#662222; }
     .muted { opacity:.75; font-size:12px; }
@@ -39,7 +39,8 @@
       <div>
         <div style="font-size:18px; font-weight:700;">BASE Creator Dashboard — V1 Publisher</div>
         <div class="muted">
-          Static hosting limit respected: Dashboard commits <span class="mono">Fan App/content.json</span>, Fan App pulls updates.
+          This dashboard <b>publishes</b> updates by committing <span class="mono">Fan App/content.json</span> via GitHub API.
+          No backend. No platform lock-in. Token = authority gate.
         </div>
       </div>
       <div id="statePill" class="pill warn">STATUS: not loaded</div>
@@ -62,15 +63,15 @@
 
       <div class="row">
         <div>
-          <label>Creator Token (fine-grained PAT: repo Contents read/write)</label>
+          <label>Creator Token (fine-grained PAT: Contents read/write)</label>
           <input id="token" type="password" placeholder="Paste token here (stored locally on this device)" />
-          <div class="muted">Authority gate. No token = no publish.</div>
+          <div class="muted">Authority gate. No token = cannot publish.</div>
         </div>
 
         <div>
           <label>Fan App content.json URL (read)</label>
           <input id="contentUrl" type="text" />
-          <div class="muted">Dashboard reads this URL; publish writes to repo via GitHub API.</div>
+          <div class="muted">Dashboard reads this URL; Publish writes to repo via GitHub API.</div>
         </div>
       </div>
     </section>
@@ -87,13 +88,29 @@
         </div>
       </div>
 
+      <div class="row">
+        <div>
+          <label>isLive</label>
+          <select id="isLive">
+            <option value="false">false</option>
+            <option value="true">true</option>
+          </select>
+          <div class="muted">Fan App will show LIVE/OFFLINE badge.</div>
+        </div>
+        <div>
+          <label>liveUrl</label>
+          <input id="liveUrl" type="text" placeholder="https://..." />
+          <div class="muted">Optional. If empty, Fan App hides live button/link.</div>
+        </div>
+      </div>
+
       <div>
         <label>links (JSON array)</label>
         <textarea id="links" class="mono" placeholder='[
   { "label": "Instagram", "url": "https://instagram.com/" },
   { "label": "YouTube", "url": "https://youtube.com/" }
 ]'></textarea>
-        <div class="muted">No manual file editing. You edit here, Dashboard publishes.</div>
+        <div class="muted">You edit here; Dashboard publishes. No touching repo files manually.</div>
       </div>
 
       <div>
