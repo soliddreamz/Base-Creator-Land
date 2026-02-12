@@ -1,8 +1,15 @@
 {
-  "name": "Creator Name",
+  "name": "DJ TEST",
   "bio": "This is my home on the web.",
+  "isLive": false,
   "links": [
-    { "label": "Instagram", "url": "https://instagram.com/" },
-    { "label": "YouTube", "url": "https://youtube.com/" }
+    {
+      "label": "Instagram",
+      "url": "https://instagram.com/"
+    },
+    {
+      "label": "YouTube",
+      "url": "https://youtube.com/"
+    }
   ]
 }
