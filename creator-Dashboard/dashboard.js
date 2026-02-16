@@ -1,4 +1,4 @@
-/* BASE Creator Dashboard — V1 Publisher
+/* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
    - Reads Fan App/content.json (public URL)
    - Publishes updates by committing Fan App/content.json via GitHub API (authority gate = token)
    - Static hosting limit respected (no backend)
@@ -8,7 +8,7 @@
   const OWNER = "soliddreamz";
   const REPO = "Base-Creator-Land";
   const BRANCH = "main";
-  const TARGET_PATH = "Fan App/content.json"; // exact repo path (space matters)
+  const TARGET_PATH = "Fan App/content.json";
   const DEFAULT_CONTENT_URL = `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
 
   // ===== DOM =====
@@ -24,8 +24,6 @@
 
     name: $("name"),
     bio: $("bio"),
-    isLive: $("isLive"),
-    liveUrl: $("liveUrl"),
     links: $("links"),
 
     preview: $("preview"),
@@ -58,11 +56,8 @@
     const draft = {
       name: (el.name.value || "").trim(),
       bio: (el.bio.value || "").trim(),
-      isLive: el.isLive.value === "true",
-      liveUrl: (el.liveUrl.value || "").trim(),
     };
 
-    // links must be a JSON array
     const linksRaw = (el.links.value || "").trim();
     if (linksRaw) {
       const parsed = safeJsonParse(linksRaw);
@@ -74,10 +69,8 @@
       draft.links = [];
     }
 
-    // Clean empties
     if (!draft.name) delete draft.name;
     if (!draft.bio) delete draft.bio;
-    if (!draft.liveUrl) delete draft.liveUrl;
 
     return draft;
   }
@@ -86,7 +79,7 @@
     try {
       const draft = buildDraft();
       el.preview.value = JSON.stringify(draft, null, 2);
-      setPill(draft.isLive ? "ok" : "warn", draft.isLive ? "STATUS: LIVE = true" : "STATUS: LIVE = false");
+      setPill("warn", "STATUS: draft ready");
       return true;
     } catch (e) {
       el.preview.value = `// Preview error: ${e.message}`;
@@ -126,7 +119,6 @@
   }
 
   async function ghGetFileSha(token) {
-    // NOTE: encodeURIComponent does NOT encode "/". This is OK because the API path expects slashes.
     const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}?ref=${encodeURIComponent(BRANCH)}`;
     const res = await fetch(api, { headers: ghHeaders(token) });
     if (!res.ok) {
@@ -165,8 +157,6 @@
   function fillForm(obj) {
     el.name.value = obj?.name || "";
     el.bio.value = obj?.bio || "";
-    el.isLive.value = (obj?.isLive === true) ? "true" : "false";
-    el.liveUrl.value = obj?.liveUrl || "";
 
     if (Array.isArray(obj?.links)) el.links.value = JSON.stringify(obj.links, null, 2);
     else el.links.value = "[]";
@@ -180,7 +170,6 @@
     el.btnPublish.disabled = !(hasToken && previewOk && lastRemoteSha);
   }
 
-  // ===== EVENTS =====
   el.token.addEventListener("input", () => {
     const t = (el.token.value || "").trim();
     if (t) localStorage.setItem(LS_TOKEN, t);
@@ -190,10 +179,7 @@
   ["input", "change"].forEach((evt) => {
     el.name.addEventListener(evt, enablePublishIfReady);
     el.bio.addEventListener(evt, enablePublishIfReady);
-    el.isLive.addEventListener(evt, enablePublishIfReady);
-    el.liveUrl.addEventListener(evt, enablePublishIfReady);
     el.links.addEventListener(evt, enablePublishIfReady);
-    el.contentUrl.addEventListener(evt, () => {});
   });
 
   el.btnResetToken.addEventListener("click", () => {
@@ -259,7 +245,7 @@
         el.lastSha.textContent = `sha: ${lastRemoteSha}`;
       }
 
-      setPill(draft.isLive ? "ok" : "warn", draft.isLive ? "STATUS: LIVE published" : "STATUS: not-live published");
+      setPill("ok", "STATUS: published");
       log("Publish success.");
       enablePublishIfReady();
     } catch (e) {
@@ -269,7 +255,6 @@
     }
   });
 
-  // ===== INIT =====
   function init() {
     el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
     el.contentUrl.value = DEFAULT_CONTENT_URL;
@@ -277,7 +262,6 @@
     const saved = localStorage.getItem(LS_TOKEN);
     if (saved) el.token.value = saved;
 
-    // Default form state
     el.links.value = "[]";
     refreshPreview();
     setPill("warn", "STATUS: not loaded");
