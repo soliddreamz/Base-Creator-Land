@@ -1,49 +1,136 @@
-const CACHE = "creator-dashboard-v1-2"; // bump version to break old cache
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./dashboard.js",
-  "./manifest.json"
+/* Base System — Creator Dashboard SW (folder-scoped, versioned)
+   Fixes: stale dashboard.js after deploys
+
+   Key points:
+   - Works inside /creator-Dashboard/ (not repo root)
+   - Versioned cache name injected by GitHub Actions (__BUILD_VERSION__)
+   - skipWaiting + clients.claim for immediate takeover
+   - Network-first for HTML + JS/CSS so code is never stale
+*/
+
+const BUILD_VERSION = "__BUILD_VERSION__"; // injected at deploy time
+const SW_VERSION =
+  BUILD_VERSION && BUILD_VERSION !== "__BUILD_VERSION__"
+    ? BUILD_VERSION
+    : "dev";
+
+const CACHE_PREFIX = "base-creator-dashboard";
+const CACHE_NAME = `${CACHE_PREFIX}-runtime-${SW_VERSION}`;
+
+// IMPORTANT: folder scope base path (ex: "/Base-Creator-Land/creator-Dashboard/")
+const SCOPE_URL = new URL(self.registration.scope);
+const BASE_PATH = SCOPE_URL.pathname.endsWith("/")
+  ? SCOPE_URL.pathname
+  : `${SCOPE_URL.pathname}/`;
+
+// Minimal shell inside THIS folder (keep small to avoid stale)
+const PRECACHE_URLS = [
+  BASE_PATH,
+  `${BASE_PATH}index.html`,
+  `${BASE_PATH}sw-register.js`,
+  `${BASE_PATH}dashboard.js`
 ];
 
-self.addEventListener("install", (e) => {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.addAll(PRECACHE_URLS.map((u) => new Request(u, { cache: "reload" })));
+    })()
+  );
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
-    await self.clients.claim();
-  })());
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME)
+          .map((k) => caches.delete(k))
+      );
+      await self.clients.claim();
+    })()
+  );
 });
 
-// Network-first for HTML/JS so updates win.
-// Cache-first for everything else.
-self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
+self.addEventListener("message", (event) => {
+  if (!event.data) return;
+  if (event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
 
-  const isSameScope = url.pathname.includes("/creator-Dashboard/");
-  if (!isSameScope) return;
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
 
-  const isHtml = e.request.destination === "document" || url.pathname.endsWith("/creator-Dashboard/") || url.pathname.endsWith("/creator-Dashboard/index.html");
-  const isJs = e.request.destination === "script" || url.pathname.endsWith(".js");
+  if (req.method !== "GET") return;
 
-  if (isHtml || isJs) {
-    e.respondWith((async () => {
-      try {
-        const fresh = await fetch(e.request, { cache: "no-store" });
-        const cache = await caches.open(CACHE);
-        cache.put(e.request, fresh.clone());
-        return fresh;
-      } catch {
-        const hit = await caches.match(e.request);
-        return hit || Response.error();
-      }
-    })());
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  const dest = req.destination;
+  const isNavigation = req.mode === "navigate" || dest === "document";
+
+  // HTML navigations: network-first
+  if (isNavigation) {
+    event.respondWith(networkFirst(req, true));
     return;
   }
 
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request)));
+  // JS/CSS/Workers: network-first (prevents stale code)
+  if (dest === "script" || dest === "style" || dest === "worker") {
+    event.respondWith(networkFirst(req, false));
+    return;
+  }
+
+  // Images/Fonts: cache-first
+  if (dest === "image" || dest === "font") {
+    event.respondWith(cacheFirst(req));
+    return;
+  }
+
+  // Default: stale-while-revalidate
+  event.respondWith(staleWhileRevalidate(req));
 });
+
+async function networkFirst(req, allowNavFallback) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const fresh = await fetch(req, { cache: "no-store" });
+    if (fresh && fresh.ok) cache.put(req, fresh.clone());
+    return fresh;
+  } catch (e) {
+    const cached = await cache.match(req);
+    if (cached) return cached;
+
+    if (allowNavFallback && req.mode === "navigate") {
+      const fallback = await cache.match(`${BASE_PATH}index.html`);
+      if (fallback) return fallback;
+    }
+    throw e;
+  }
+}
+
+async function cacheFirst(req) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+
+  const fresh = await fetch(req);
+  if (fresh && fresh.ok) cache.put(req, fresh.clone());
+  return fresh;
+}
+
+async function staleWhileRevalidate(req) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(req);
+
+  const fetchPromise = fetch(req)
+    .then((fresh) => {
+      if (fresh && fresh.ok) cache.put(req, fresh.clone());
+      return fresh;
+    })
+    .catch(() => cached);
+
+  return cached || fetchPromise;
+}
