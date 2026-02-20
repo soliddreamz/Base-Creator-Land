@@ -35,12 +35,11 @@
 </head>
 <body>
   <header>
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div style="display:flex; justify-content:space-between;">
       <div>
         <div style="font-size:18px; font-weight:700;">BASE Creator Dashboard — V1 Publisher</div>
         <div class="muted">
-          This dashboard <b>publishes</b> updates by committing <span class="mono">Fan App/content.json</span> via GitHub API.
-          No backend. No platform lock-in. Token = authority gate.
+          Publishes updates by committing <span class="mono">Fan App/content.json</span> via GitHub API.
         </div>
       </div>
       <div id="statePill" class="pill warn">STATUS: not loaded</div>
@@ -48,14 +47,62 @@
   </header>
 
   <main>
-    <!-- (Everything inside main remains EXACTLY as you provided) -->
+
+    <section class="card">
+      <div class="muted">
+        Repo: <span id="repoLabel" class="mono"></span><br/>
+        Target: <span class="mono">Fan App/content.json</span>
+      </div>
+
+      <div class="btnrow" style="margin-top:10px;">
+        <button id="btnLoad" class="primary">Load Current State</button>
+        <button id="btnPublish" class="primary" disabled>Publish</button>
+        <button id="btnResetToken" class="danger">Reset Token</button>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <div>
+          <label>Creator Token</label>
+          <input id="token" type="password" />
+        </div>
+        <div>
+          <label>content.json URL</label>
+          <input id="contentUrl" type="text" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div>
+          <label>name</label>
+          <input id="name" type="text" />
+        </div>
+        <div>
+          <label>bio</label>
+          <input id="bio" type="text" />
+        </div>
+      </div>
+
+      <div>
+        <label>links (JSON array)</label>
+        <textarea id="links" class="mono"></textarea>
+      </div>
+
+      <div>
+        <label>Preview</label>
+        <textarea id="preview" class="mono" readonly></textarea>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="muted mono" id="lastSha">sha: —</div>
+      <div id="status" class="status mono">Ready.</div>
+    </section>
+
   </main>
 
-  <!-- Your existing dashboard logic -->
   <script src="./dashboard.js"></script>
-
-  <!-- Replace inline SW registration with controlled version -->
   <script src="./sw-register.js"></script>
-
 </body>
 </html>
