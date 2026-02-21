@@ -6,20 +6,50 @@
 <title>Base Fan App</title>
 
 <style>
-body{ margin:0; font-family:system-ui; background:#0b0b0f; color:white; }
-header{ padding:16px; border-bottom:1px solid #222; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#0b0b0f; /* default fallback */
+  color:white;
+  transition:background-color 0.3s ease;
+}
+header{
+  padding:16px;
+  border-bottom:1px solid #222;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
 section{ padding:16px; }
-.badge{ padding:6px 10px; border-radius:20px; background:#222; font-size:12px; display:inline-block; }
-.links{ display:grid; gap:10px; max-width:520px; }
+.badge{
+  padding:6px 10px;
+  border-radius:20px;
+  background:#222;
+  font-size:12px;
+  display:inline-block;
+}
+.links{
+  display:grid;
+  gap:10px;
+  max-width:520px;
+}
 a.btn{
-  display:flex; justify-content:space-between; align-items:center;
-  padding:12px 14px; border:1px solid #222; border-radius:12px;
-  color:white; text-decoration:none; background:#0a0a0a;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 14px;
+  border:1px solid #222;
+  border-radius:12px;
+  color:white;
+  text-decoration:none;
+  background:#0a0a0a;
 }
 </style>
 </head>
 
 <body>
+
 <header>
   <div>
     <h2 id="name" style="margin:0 0 6px 0;">Creator Name</h2>
@@ -29,7 +59,6 @@ a.btn{
 
 <section>
   <p id="bio">Bio goes here</p>
-
   <div class="links" id="links"></div>
 </section>
 
@@ -40,12 +69,22 @@ const POLL_INTERVAL = 15000;
 function applyState(d){
   if (!d) return;
 
+  // Name + Bio
   document.getElementById("name").textContent = d.name || "";
   document.getElementById("bio").textContent  = d.bio || "";
 
-  const liveOn = d.isLive === true; // ✅ aligned
+  // Background Color (Tier 0 control)
+  if (d.backgroundColor && typeof d.backgroundColor === "string") {
+    document.body.style.background = d.backgroundColor;
+  } else {
+    document.body.style.background = "#0b0b0f";
+  }
+
+  // Live Badge
+  const liveOn = d.isLive === true;
   document.getElementById("live").textContent = liveOn ? "LIVE" : "OFFLINE";
 
+  // Links
   const linksEl = document.getElementById("links");
   linksEl.innerHTML = "";
 
@@ -61,7 +100,7 @@ function applyState(d){
     linksEl.appendChild(a);
   });
 
-  // Optional liveUrl button (only if provided + isLive true)
+  // Optional liveUrl button
   if (liveOn && d.liveUrl) {
     const a = document.createElement("a");
     a.className = "btn";
@@ -75,7 +114,7 @@ function applyState(d){
 
 async function fetchState(){
   const url = new URL(CONTENT_URL, location.href);
-  url.searchParams.set("ts", Date.now()); // cache bust
+  url.searchParams.set("ts", Date.now());
   const res = await fetch(url.toString(), { cache:"no-store" });
   if (!res.ok) throw new Error("Failed to load content.json");
   return res.json();
@@ -86,7 +125,7 @@ async function tick(){
     const state = await fetchState();
     applyState(state);
   }catch(e){
-    // silent fail (V1)
+    // silent fail
   }
 }
 
@@ -96,5 +135,6 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) tick();
 });
 </script>
+
 </body>
 </html>
