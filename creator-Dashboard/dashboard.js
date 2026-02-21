@@ -1,15 +1,26 @@
 /* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
    - Reads Fan App/content.json (public URL)
    - Publishes updates by committing Fan App/content.json via GitHub API (authority gate = token)
-   - Static hosting limit respected (no backend)
+   - Adds Tier 0 App Icon Sovereignty (manifest + icons + version bump)
+   - Static hosting only. No backend.
 */
 (() => {
-  // ===== CONFIG (locked to your repo) =====
+
+  // ===== CONFIG (locked) =====
   const OWNER = "soliddreamz";
   const REPO = "Base-Creator-Land";
   const BRANCH = "main";
-  const TARGET_PATH = "Fan App/content.json";
-  const DEFAULT_CONTENT_URL = `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
+
+  const TARGET_CONTENT_PATH = "Fan App/content.json";
+  const TARGET_MANIFEST_PATH = "Fan App/manifest.json";
+  const ICON_192_PATH = "Fan App/icons/icon-192.png";
+  const ICON_512_PATH = "Fan App/icons/icon-512.png";
+
+  const DEFAULT_CONTENT_URL =
+    `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
+
+  const DEFAULT_MANIFEST_URL =
+    `https://${OWNER}.github.io/${REPO}/Fan%20App/manifest.json`;
 
   // ===== DOM =====
   const $ = (id) => document.getElementById(id);
@@ -30,13 +41,19 @@
     status: $("status"),
     lastSha: $("lastSha"),
     statePill: $("statePill"),
+
+    // ICON
+    iconFile: $("appIconFile"),
+    btnUpdateIcon: $("btnUpdateIcon"),
+    iconStatus: $("appIconStatus"),
+    iconPreview: $("appIconPreview")
   };
 
   // ===== STATE =====
   const LS_TOKEN = "base_creator_token_v1";
   let lastRemoteSha = null;
 
-  // ===== HELPERS =====
+  // ===== UTIL =====
   function log(line) {
     const stamp = new Date().toLocaleString();
     el.status.textContent = `[${stamp}] ${line}\n` + el.status.textContent;
@@ -52,17 +69,81 @@
     catch (e) { return { ok: false, error: e }; }
   }
 
+  function requireToken() {
+    const token = (el.token.value || "").trim();
+    if (!token) throw new Error("Missing creator token.");
+    return token;
+  }
+
+  function ghHeaders(token) {
+    return {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json"
+    };
+  }
+
+  function toBase64Utf8(str) {
+    const utf8 = new TextEncoder().encode(str);
+    let bin = "";
+    utf8.forEach((b) => bin += String.fromCharCode(b));
+    return btoa(bin);
+  }
+
+  function toBase64Binary(uint8) {
+    let bin = "";
+    uint8.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin);
+  }
+
+  async function fetchPublicJson(url) {
+    const u = new URL(url);
+    u.searchParams.set("ts", String(Date.now()));
+    const res = await fetch(u.toString(), { cache: "no-store" });
+    if (!res.ok) throw new Error(`Load failed (${res.status})`);
+    return await res.json();
+  }
+
+  async function ghGetFile(token, path) {
+    const api =
+      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(BRANCH)}`;
+    const res = await fetch(api, { headers: ghHeaders(token) });
+    if (!res.ok) throw new Error(`GET ${path} failed (${res.status})`);
+    return await res.json();
+  }
+
+  async function ghPutFile(token, path, sha, base64Content, message) {
+    const api =
+      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}`;
+    const body = {
+      message,
+      content: base64Content,
+      sha,
+      branch: BRANCH
+    };
+
+    const res = await fetch(api, {
+      method: "PUT",
+      headers: ghHeaders(token),
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error(`PUT ${path} failed (${res.status})`);
+    return await res.json();
+  }
+
   function buildDraft() {
     const draft = {
       name: (el.name.value || "").trim(),
-      bio: (el.bio.value || "").trim(),
+      bio: (el.bio.value || "").trim()
     };
 
     const linksRaw = (el.links.value || "").trim();
     if (linksRaw) {
       const parsed = safeJsonParse(linksRaw);
       if (!parsed.ok || !Array.isArray(parsed.value)) {
-        throw new Error("links must be valid JSON ARRAY (or empty).");
+        throw new Error("links must be valid JSON ARRAY.");
       }
       draft.links = parsed.value;
     } else {
@@ -77,184 +158,122 @@
 
   function refreshPreview() {
     try {
-      const draft = buildDraft();
-      el.preview.value = JSON.stringify(draft, null, 2);
+      el.preview.value =
+        JSON.stringify(buildDraft(), null, 2);
       setPill("warn", "STATUS: draft ready");
       return true;
     } catch (e) {
-      el.preview.value = `// Preview error: ${e.message}`;
+      el.preview.value = `// ${e.message}`;
       setPill("bad", "STATUS: invalid input");
       return false;
     }
   }
 
-  function requireToken() {
-    const token = (el.token.value || "").trim();
-    if (!token) throw new Error("Missing creator token. (Authority gate)");
-    return token;
-  }
-
-  function ghHeaders(token) {
-    return {
-      "Accept": "application/vnd.github+json",
-      "Authorization": `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
-    };
-  }
-
-  function toBase64Utf8(str) {
-    const utf8 = new TextEncoder().encode(str);
-    let bin = "";
-    utf8.forEach((b) => bin += String.fromCharCode(b));
-    return btoa(bin);
-  }
-
-  async function fetchPublicJson(url) {
-    const u = new URL(url);
-    u.searchParams.set("ts", String(Date.now()));
-    const res = await fetch(u.toString(), { cache: "no-store" });
-    if (!res.ok) throw new Error(`Failed to load content.json (${res.status})`);
-    return await res.json();
-  }
-
-  async function ghGetFileSha(token) {
-    const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}?ref=${encodeURIComponent(BRANCH)}`;
-    const res = await fetch(api, { headers: ghHeaders(token) });
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`GitHub GET contents failed (${res.status}). ${txt.slice(0, 180)}`);
-    }
-    const data = await res.json();
-    if (!data?.sha) throw new Error("GitHub response missing sha.");
-    return data.sha;
-  }
-
-  async function ghPutJson(token, sha, jsonText) {
-    const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(TARGET_PATH)}`;
-    const body = {
-      message: `BASE V1: publish content.json via Creator Dashboard`,
-      content: toBase64Utf8(jsonText),
-      sha,
-      branch: BRANCH,
-    };
-
-    const res = await fetch(api, {
-      method: "PUT",
-      headers: ghHeaders(token),
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`GitHub PUT failed (${res.status}). ${txt.slice(0, 220)}`);
-    }
-
-    const data = await res.json();
-    return data?.content?.sha || data?.commit?.sha || null;
-  }
-
-  function fillForm(obj) {
-    el.name.value = obj?.name || "";
-    el.bio.value = obj?.bio || "";
-
-    if (Array.isArray(obj?.links)) el.links.value = JSON.stringify(obj.links, null, 2);
-    else el.links.value = "[]";
-
-    refreshPreview();
-  }
-
   function enablePublishIfReady() {
-    const hasToken = (el.token.value || "").trim().length > 0;
+    const hasToken = (el.token.value || "").trim();
     const previewOk = refreshPreview();
     el.btnPublish.disabled = !(hasToken && previewOk && lastRemoteSha);
   }
 
-  el.token.addEventListener("input", () => {
-    const t = (el.token.value || "").trim();
-    if (t) localStorage.setItem(LS_TOKEN, t);
-    enablePublishIfReady();
-  });
+  // ===== ICON FLOW =====
+  async function resizeImage(file, size) {
+    const img = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
-  ["input", "change"].forEach((evt) => {
-    el.name.addEventListener(evt, enablePublishIfReady);
-    el.bio.addEventListener(evt, enablePublishIfReady);
-    el.links.addEventListener(evt, enablePublishIfReady);
-  });
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, size, size);
 
-  el.btnResetToken.addEventListener("click", () => {
-    localStorage.removeItem(LS_TOKEN);
-    el.token.value = "";
-    lastRemoteSha = null;
-    el.lastSha.textContent = "sha: —";
-    log("Token cleared (local device). Publish disabled.");
-    enablePublishIfReady();
-  });
+    const blob = await new Promise(res =>
+      canvas.toBlob(res, "image/png")
+    );
 
-  el.btnLoad.addEventListener("click", async () => {
-    try {
-      setPill("warn", "STATUS: loading…");
-      log("Loading current Fan App/content.json (public)…");
+    const arrayBuffer = await blob.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+  }
 
-      const url = (el.contentUrl.value || DEFAULT_CONTENT_URL).trim();
-      const current = await fetchPublicJson(url);
+  async function updateIconFlow() {
+    const token = requireToken();
+    const file = el.iconFile.files[0];
+    if (!file) throw new Error("Select an image first.");
 
-      log("Loaded public content.json.");
-      fillForm(current);
+    el.iconStatus.textContent = "Processing...";
 
-      const token = (el.token.value || "").trim() || localStorage.getItem(LS_TOKEN) || "";
-      if (token) {
-        log("Fetching GitHub file sha (authority path)…");
-        const sha = await ghGetFileSha(token);
-        lastRemoteSha = sha;
-        el.lastSha.textContent = `sha: ${lastRemoteSha}`;
-        log(`GitHub sha loaded: ${lastRemoteSha}`);
-      } else {
-        lastRemoteSha = null;
-        el.lastSha.textContent = "sha: —";
-        log("No token present. Sha not loaded. Publish remains disabled.");
+    const icon192 = await resizeImage(file, 192);
+    const icon512 = await resizeImage(file, 512);
+
+    const file192 = await ghGetFile(token, ICON_192_PATH).catch(() => null);
+    const file512 = await ghGetFile(token, ICON_512_PATH).catch(() => null);
+
+    await ghPutFile(
+      token,
+      ICON_192_PATH,
+      file192?.sha,
+      toBase64Binary(icon192),
+      "BASE V1: update 192 icon"
+    );
+
+    await ghPutFile(
+      token,
+      ICON_512_PATH,
+      file512?.sha,
+      toBase64Binary(icon512),
+      "BASE V1: update 512 icon"
+    );
+
+    const manifestFile = await ghGetFile(token, TARGET_MANIFEST_PATH);
+    const manifestJson =
+      JSON.parse(atob(manifestFile.content.replace(/\n/g, "")));
+
+    const version = Date.now();
+
+    manifestJson.start_url = `./?v=${version}`;
+    manifestJson.icons = [
+      {
+        src: `icons/icon-192.png?v=${version}`,
+        sizes: "192x192",
+        type: "image/png"
+      },
+      {
+        src: `icons/icon-512.png?v=${version}`,
+        sizes: "512x512",
+        type: "image/png"
       }
+    ];
 
-      enablePublishIfReady();
-      setPill("warn", "STATUS: loaded (not published)");
-      log("Ready.");
+    await ghPutFile(
+      token,
+      TARGET_MANIFEST_PATH,
+      manifestFile.sha,
+      toBase64Utf8(JSON.stringify(manifestJson, null, 2)),
+      "BASE V1: manifest version bump (icon update)"
+    );
+
+    el.iconStatus.textContent = "Icon updated.";
+    log("App icon + manifest version updated.");
+  }
+
+  el.btnUpdateIcon.addEventListener("click", async () => {
+    try {
+      await updateIconFlow();
     } catch (e) {
-      setPill("bad", "STATUS: load failed");
-      log(`ERROR: ${e.message}`);
-      enablePublishIfReady();
+      el.iconStatus.textContent = "Failed.";
+      log(`ICON ERROR: ${e.message}`);
     }
   });
 
-  el.btnPublish.addEventListener("click", async () => {
-    try {
-      const token = requireToken();
-
-      log("Re-checking GitHub sha…");
-      const sha = await ghGetFileSha(token);
-      lastRemoteSha = sha;
-      el.lastSha.textContent = `sha: ${lastRemoteSha}`;
-
-      const draft = buildDraft();
-      const jsonText = JSON.stringify(draft, null, 2);
-
-      log("Publishing (committing) to repo…");
-      const newSha = await ghPutJson(token, lastRemoteSha, jsonText);
-
-      if (newSha) {
-        lastRemoteSha = newSha;
-        el.lastSha.textContent = `sha: ${lastRemoteSha}`;
-      }
-
-      setPill("ok", "STATUS: published");
-      log("Publish success.");
-      enablePublishIfReady();
-    } catch (e) {
-      setPill("bad", "STATUS: publish failed");
-      log(`ERROR: ${e.message}`);
-      enablePublishIfReady();
-    }
-  });
-
+  // ===== INIT =====
   function init() {
     el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
     el.contentUrl.value = DEFAULT_CONTENT_URL;
@@ -265,9 +284,10 @@
     el.links.value = "[]";
     refreshPreview();
     setPill("warn", "STATUS: not loaded");
-    log("Open Dashboard → paste token → Load Current State → Publish.");
+    log("Load → Edit → Publish. Icon control enabled.");
     enablePublishIfReady();
   }
 
   init();
+
 })();
