@@ -1,4 +1,8 @@
-/* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean + Email Support) */
+/* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
+   - Publishes Fan App/content.json via GitHub API
+   - Creator-facing UI only
+   - Engine hidden
+*/
 (() => {
 
   const OWNER = "soliddreamz";
@@ -28,9 +32,6 @@
     addLinkBtn: $("addLinkBtn"),
     clearLinksBtn: $("clearLinksBtn"),
     linksList: $("linksList"),
-
-    emailCaptureToggle: $("emailCaptureToggle"),
-    emailEndpoint: $("emailEndpoint"),
 
     previewName: $("pName"),
     previewBio: $("pBio"),
@@ -90,6 +91,7 @@
 
       el.linksList.appendChild(row);
 
+      // Preview
       const p = document.createElement("div");
       p.textContent = link.label;
       el.previewLinks.appendChild(p);
@@ -110,11 +112,6 @@
       backgroundColor: el.backgroundColor.value || "#000000"
     };
 
-    if (el.emailCaptureToggle && el.emailCaptureToggle.checked && el.emailEndpoint.value.trim()) {
-      draft.emailCapture = true;
-      draft.emailEndpoint = el.emailEndpoint.value.trim();
-    }
-
     if (!draft.name) delete draft.name;
     if (!draft.bio) delete draft.bio;
 
@@ -127,6 +124,7 @@
     el.previewBio.textContent = draft.bio || "—";
     el.previewName.style.color = "#fff";
     el.previewBio.style.color = "#ccc";
+
     return true;
   }
 
@@ -227,13 +225,6 @@
       el.backgroundColor.value = current?.backgroundColor || "#000000";
       hydrateLinks(current?.links);
 
-      if (el.emailCaptureToggle) {
-        el.emailCaptureToggle.checked = current?.emailCapture === true;
-      }
-      if (el.emailEndpoint) {
-        el.emailEndpoint.value = current?.emailEndpoint || "";
-      }
-
       const token = el.token.value || localStorage.getItem(LS_TOKEN);
       if (token) {
         lastRemoteSha = await ghGetFileSha(token);
@@ -262,11 +253,9 @@
 
       setPill("ok", "STATUS: published");
       log("Publish success.");
-      enablePublishIfReady();
     } catch (e) {
       setPill("bad", "STATUS: publish failed");
       log(e.message);
-      enablePublishIfReady();
     }
   });
 
@@ -280,7 +269,6 @@
     el.backgroundColor.value = "#000000";
     hydrateLinks([]);
     refreshPreview();
-    setPill("warn", "STATUS: not loaded");
     enablePublishIfReady();
   }
 
