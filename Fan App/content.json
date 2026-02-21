@@ -1,11 +1,15 @@
 {
-  "name": "DJ TEST3",
+  "name": "DJ TEST4",
   "bio": "MO FIYA 1",
   "links": [
-    { "label": "Instagram", "url": "https://instagram.com/" },
-    { "label": "YouTube", "url": "https://youtube.com/" }
+    {
+      "label": "Instagram",
+      "url": "https://instagram.com/"
+    },
+    {
+      "label": "YouTube",
+      "url": "https://youtube.com/"
+    }
   ],
-  "backgroundColor": "#0056d6",
-  "emailCapture": true,
-  "emailEndpoint": "https://your-email-provider-endpoint.com"
+  "backgroundColor": "#0056d6"
 }
