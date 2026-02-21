@@ -9,7 +9,7 @@
 body{
   margin:0;
   font-family:system-ui;
-  background:#0b0b0f; /* default fallback */
+  background:#0b0b0f;
   color:white;
   transition:background-color 0.3s ease;
 }
@@ -22,29 +22,15 @@ header{
   gap:12px;
 }
 section{ padding:16px; }
-.badge{
-  padding:6px 10px;
-  border-radius:20px;
-  background:#222;
-  font-size:12px;
-  display:inline-block;
-}
-.links{
-  display:grid;
-  gap:10px;
-  max-width:520px;
-}
+.badge{ padding:6px 10px; border-radius:20px; background:#222; font-size:12px; }
+.links{ display:grid; gap:10px; max-width:520px; }
 a.btn{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:12px 14px;
-  border:1px solid #222;
-  border-radius:12px;
-  color:white;
-  text-decoration:none;
-  background:#0a0a0a;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px; border:1px solid #222; border-radius:12px;
+  color:white; text-decoration:none; background:#0a0a0a;
 }
+.emailBox{ margin-top:20px; max-width:520px; display:flex; gap:8px; }
+.emailStatus{ font-size:12px; opacity:.7; margin-top:6px; }
 </style>
 </head>
 
@@ -60,79 +46,94 @@ a.btn{
 <section>
   <p id="bio">Bio goes here</p>
   <div class="links" id="links"></div>
+  <div id="emailContainer"></div>
 </section>
 
 <script>
-const CONTENT_URL = "./content.json";
-const POLL_INTERVAL = 15000;
+const CONTENT_URL="./content.json";
+const POLL_INTERVAL=15000;
 
 function applyState(d){
-  if (!d) return;
+  if(!d) return;
+  document.getElementById("name").textContent=d.name||"";
+  document.getElementById("bio").textContent=d.bio||"";
 
-  // Name + Bio
-  document.getElementById("name").textContent = d.name || "";
-  document.getElementById("bio").textContent  = d.bio || "";
+  if(d.backgroundColor)
+    document.body.style.background=d.backgroundColor;
 
-  // Background Color (Tier 0 control)
-  if (d.backgroundColor && typeof d.backgroundColor === "string") {
-    document.body.style.background = d.backgroundColor;
-  } else {
-    document.body.style.background = "#0b0b0f";
-  }
+  const liveOn=d.isLive===true;
+  document.getElementById("live").textContent=liveOn?"LIVE":"OFFLINE";
 
-  // Live Badge
-  const liveOn = d.isLive === true;
-  document.getElementById("live").textContent = liveOn ? "LIVE" : "OFFLINE";
-
-  // Links
-  const linksEl = document.getElementById("links");
-  linksEl.innerHTML = "";
-
-  const links = Array.isArray(d.links) ? d.links : [];
-  links.forEach((item) => {
-    if (!item || !item.url) return;
-    const a = document.createElement("a");
-    a.className = "btn";
-    a.href = item.url;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = item.label || item.url;
+  const linksEl=document.getElementById("links");
+  linksEl.innerHTML="";
+  (Array.isArray(d.links)?d.links:[]).forEach(item=>{
+    if(!item||!item.url) return;
+    const a=document.createElement("a");
+    a.className="btn";
+    a.href=item.url;
+    a.target="_blank";
+    a.rel="noopener";
+    a.textContent=item.label||item.url;
     linksEl.appendChild(a);
   });
 
-  // Optional liveUrl button
-  if (liveOn && d.liveUrl) {
-    const a = document.createElement("a");
-    a.className = "btn";
-    a.href = d.liveUrl;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = "Open Live";
-    linksEl.prepend(a);
+  if(d.emailCapture===true && d.emailEndpoint){
+    renderEmail(d.emailEndpoint);
   }
 }
 
+function renderEmail(endpoint){
+  const container=document.getElementById("emailContainer");
+  container.innerHTML="";
+  const box=document.createElement("div");
+  box.className="emailBox";
+  const input=document.createElement("input");
+  input.type="email";
+  input.placeholder="Enter your email";
+  const btn=document.createElement("button");
+  btn.textContent="Join";
+  const status=document.createElement("div");
+  status.className="emailStatus";
+  btn.onclick=async()=>{
+    const email=input.value.trim();
+    if(!email) return;
+    try{
+      await fetch(endpoint,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email})
+      });
+      status.textContent="You're in.";
+      input.value="";
+    }catch(e){
+      status.textContent="Submission failed.";
+    }
+  };
+  box.appendChild(input);
+  box.appendChild(btn);
+  container.appendChild(box);
+  container.appendChild(status);
+}
+
 async function fetchState(){
-  const url = new URL(CONTENT_URL, location.href);
-  url.searchParams.set("ts", Date.now());
-  const res = await fetch(url.toString(), { cache:"no-store" });
-  if (!res.ok) throw new Error("Failed to load content.json");
-  return res.json();
+  const url=new URL(CONTENT_URL,location.href);
+  url.searchParams.set("ts",Date.now());
+  const r=await fetch(url.toString(),{cache:"no-store"});
+  if(!r.ok) throw new Error();
+  return r.json();
 }
 
 async function tick(){
   try{
-    const state = await fetchState();
+    const state=await fetchState();
     applyState(state);
-  }catch(e){
-    // silent fail
-  }
+  }catch(e){}
 }
 
 tick();
-setInterval(tick, POLL_INTERVAL);
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) tick();
+setInterval(tick,POLL_INTERVAL);
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden) tick();
 });
 </script>
 
