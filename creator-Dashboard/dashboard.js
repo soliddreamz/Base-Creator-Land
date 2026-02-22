@@ -33,6 +33,9 @@
     clearLinksBtn: $("clearLinksBtn"),
     linksList: $("linksList"),
 
+    contactEmail: $("contactEmail"),
+    contactLabel: $("contactLabel"),
+
     previewName: $("pName"),
     previewBio: $("pBio"),
     previewLinks: $("pLinks"),
@@ -112,6 +115,12 @@
       backgroundColor: el.backgroundColor.value || "#000000"
     };
 
+    const ce = (el.contactEmail?.value || "").trim();
+    const cl = (el.contactLabel?.value || "").trim();
+
+    if (ce) draft.contactEmail = ce;
+    if (cl) draft.contactLabel = cl;
+
     if (!draft.name) delete draft.name;
     if (!draft.bio) delete draft.bio;
 
@@ -124,7 +133,6 @@
     el.previewBio.textContent = draft.bio || "—";
     el.previewName.style.color = "#fff";
     el.previewBio.style.color = "#ccc";
-
     return true;
   }
 
@@ -224,6 +232,9 @@
       el.bio.value = current?.bio || "";
       el.backgroundColor.value = current?.backgroundColor || "#000000";
       hydrateLinks(current?.links);
+
+      if (el.contactEmail) el.contactEmail.value = current?.contactEmail || "";
+      if (el.contactLabel) el.contactLabel.value = current?.contactLabel || "";
 
       const token = el.token.value || localStorage.getItem(LS_TOKEN);
       if (token) {
