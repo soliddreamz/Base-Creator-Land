@@ -1,15 +1,15 @@
-/* BASE Creator Dashboard — V1 Publisher (Tier 0 Stable)
-   - Publishes Fan App/content.json
-   - Updates app icons (192 + 512)
-   - Automatically bumps manifest icon version (?v=)
-   - No structural changes
+/* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
+   - Publishes Fan App/content.json via GitHub API
+   - Updates App Icons (192 + 512)
+   - Safely bumps Fan App manifest version (?v=)
+   - No architecture changes
 */
-
 (() => {
 
   const OWNER = "soliddreamz";
   const REPO = "Base-Creator-Land";
   const BRANCH = "main";
+
   const TARGET_PATH = "Fan App/content.json";
   const MANIFEST_PATH = "Fan App/manifest.json";
 
@@ -29,6 +29,7 @@
     name: $("name"),
     bio: $("bio"),
     backgroundColor: $("backgroundColor"),
+    links: $("links"),
 
     linkLabelInput: $("linkLabelInput"),
     linkUrlInput: $("linkUrlInput"),
@@ -42,6 +43,7 @@
     appIconFile: $("appIconFile"),
     btnUpdateIcon: $("btnUpdateIcon"),
     appIconStatus: $("appIconStatus"),
+    appIconPreview: $("appIconPreview"),
 
     previewName: $("pName"),
     previewBio: $("pBio"),
@@ -129,65 +131,23 @@
     return await res.json();
   }
 
-  function buildDraft() {
-    const draft = {
-      name: (el.name?.value || "").trim(),
-      bio: (el.bio?.value || "").trim(),
-      links: linkState,
-      backgroundColor: el.backgroundColor?.value || "#000000"
-    };
+  function bumpManifestVersion(manifestObj) {
+    const current = manifestObj.start_url || "./?v=1";
+    const match = current.match(/v=(\d+)/);
+    const next = match ? Number(match[1]) + 1 : 2;
 
-    const ce = (el.contactEmail?.value || "").trim();
-    const cl = (el.contactLabel?.value || "").trim();
+    manifestObj.start_url = `./?v=${next}`;
 
-    if (ce) draft.contactEmail = ce;
-    if (cl) draft.contactLabel = cl;
+    manifestObj.icons = manifestObj.icons.map(icon => {
+      const clean = icon.src.split("?")[0];
+      return {
+        ...icon,
+        src: `${clean}?v=${next}`
+      };
+    });
 
-    if (!draft.name) delete draft.name;
-    if (!draft.bio) delete draft.bio;
-
-    return draft;
+    return manifestObj;
   }
-
-  async function fetchPublicJson(url) {
-    const u = new URL(url);
-    u.searchParams.set("ts", Date.now());
-    const res = await fetch(u.toString(), { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to load content.json");
-    return res.json();
-  }
-
-  // ===== Publish content.json =====
-
-  el.btnPublish?.addEventListener("click", async () => {
-    try {
-      const token = requireToken();
-      const file = await ghGetFile(token, TARGET_PATH);
-
-      const draft = buildDraft();
-      const jsonText = JSON.stringify(draft, null, 2);
-
-      const result = await ghPutFile(
-        token,
-        TARGET_PATH,
-        file.sha,
-        toBase64Utf8(jsonText),
-        "BASE V1: publish content.json"
-      );
-
-      if (result?.content?.sha) {
-        el.lastSha.textContent = `sha: ${result.content.sha}`;
-      }
-
-      setPill("ok", "STATUS: published");
-      log("Publish success.");
-    } catch (e) {
-      setPill("bad", "STATUS: publish failed");
-      log(e.message);
-    }
-  });
-
-  // ===== Complete Icon Chain =====
 
   el.btnUpdateIcon?.addEventListener("click", async () => {
     try {
@@ -199,44 +159,31 @@
 
       const base64Data = await fileToBase64(file);
 
-      // Overwrite icon files
-      const icon192Path = "Fan App/icons/icon-192.png";
-      const icon512Path = "Fan App/icons/icon-512.png";
+      const path192 = "Fan App/icons/icon-192.png";
+      const path512 = "Fan App/icons/icon-512.png";
 
-      const icon192File = await ghGetFile(token, icon192Path);
-      const icon512File = await ghGetFile(token, icon512Path);
+      const file192 = await ghGetFile(token, path192);
+      const file512 = await ghGetFile(token, path512);
 
-      await ghPutFile(token, icon192Path, icon192File.sha, base64Data, "BASE V1: update icon 192");
-      await ghPutFile(token, icon512Path, icon512File.sha, base64Data, "BASE V1: update icon 512");
+      await ghPutFile(token, path192, file192.sha, base64Data, "BASE V1: update icon 192");
+      await ghPutFile(token, path512, file512.sha, base64Data, "BASE V1: update icon 512");
 
-      // Update manifest version
+      // ===== BUMP MANIFEST VERSION =====
+
       const manifestFile = await ghGetFile(token, MANIFEST_PATH);
       const manifestJson = JSON.parse(atob(manifestFile.content));
-
-      const bumpVersion = (src) => {
-        const match = src.match(/\?v=(\d+)/);
-        if (!match) return src + "?v=1";
-        const next = parseInt(match[1], 10) + 1;
-        return src.replace(/\?v=\d+/, `?v=${next}`);
-      };
-
-      manifestJson.icons = manifestJson.icons.map(icon => ({
-        ...icon,
-        src: bumpVersion(icon.src)
-      }));
-
-      const updatedManifest = JSON.stringify(manifestJson, null, 2);
+      const bumped = bumpManifestVersion(manifestJson);
 
       await ghPutFile(
         token,
         MANIFEST_PATH,
         manifestFile.sha,
-        toBase64Utf8(updatedManifest),
+        toBase64Utf8(JSON.stringify(bumped, null, 2)),
         "BASE V1: bump manifest icon version"
       );
 
-      el.appIconStatus.textContent = "Icon updated everywhere.";
-      log("Icon chain completed successfully.");
+      el.appIconStatus.textContent = "Icon updated. Manifest version bumped.";
+      log("Icon updated + manifest version bumped.");
 
     } catch (e) {
       el.appIconStatus.textContent = `Error: ${e.message}`;
@@ -245,15 +192,13 @@
   });
 
   function init() {
-    if (el.repoLabel)
-      el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
-
-    if (el.contentUrl)
-      el.contentUrl.value = DEFAULT_CONTENT_URL;
+    if (el.repoLabel) el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
+    if (el.contentUrl) el.contentUrl.value = DEFAULT_CONTENT_URL;
 
     const saved = localStorage.getItem(LS_TOKEN);
-    if (saved && el.token)
-      el.token.value = saved;
+    if (saved && el.token) el.token.value = saved;
+
+    setPill("warn", "STATUS: ready");
   }
 
   init();
