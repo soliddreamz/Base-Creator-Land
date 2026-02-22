@@ -1,7 +1,11 @@
 /* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
    - Publishes Fan App/content.json via GitHub API
-   - Restores Pilot icon overwrite behavior
-   - Safely bumps Fan App manifest ?v= for icon refresh
+   - Restores Pilot icon overwrite behavior (via versioned filenames)
+   - Universal identity fix:
+       * Updates Fan App/manifest.json name + short_name
+       * Updates Fan App/index.html <title> + apple-mobile-web-app-title
+       * Updates apple-touch-icon to match versioned icon
+   - Safely bumps version for icon refresh
    - No architecture changes
 */
 (() => {
@@ -12,6 +16,7 @@
 
   const TARGET_PATH = "Fan App/content.json";
   const MANIFEST_PATH = "Fan App/manifest.json";
+  const FAN_INDEX_PATH = "Fan App/index.html";
 
   const DEFAULT_CONTENT_URL =
     `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
@@ -187,7 +192,7 @@
     });
   }
 
-  // ✅ CRITICAL FIX: encode path segments, NOT slashes
+  // ✅ encode path segments, NOT slashes
   function ghEncodePath(path) {
     return path.split("/").map(encodeURIComponent).join("/");
   }
@@ -212,9 +217,11 @@
     const body = {
       message,
       content: contentBase64,
-      sha,
       branch: BRANCH,
     };
+
+    // If sha is provided, this is an update. If not, this creates a new file.
+    if (sha) body.sha = sha;
 
     const res = await fetch(api, {
       method: "PUT",
@@ -226,6 +233,19 @@
     return await res.json();
   }
 
+  async function ghUpsertFile(token, path, contentBase64, message) {
+    try {
+      const sha = await ghGetFileSha(token, path);
+      return await ghPutFile(token, path, sha, contentBase64, message);
+    } catch (e) {
+      // If file doesn't exist (404), create it without sha
+      if (String(e.message || "").includes("(404)")) {
+        return await ghPutFile(token, path, null, contentBase64, message);
+      }
+      throw e;
+    }
+  }
+
   async function fetchPublicJson(url) {
     const u = new URL(url);
     u.searchParams.set("ts", String(Date.now()));
@@ -234,25 +254,123 @@
     return await res.json();
   }
 
-  function bumpManifestVersion(manifestObj) {
+  // ===== Identity helpers =====
+
+  function safeAppNameFromDraft(draft) {
+    const n = String(draft?.name || "").trim();
+    return n || "Creator Home";
+  }
+
+  function makeShortName(name) {
+    const n = String(name || "").trim();
+    if (!n) return "Home";
+    // iOS/Android labels look best short. Keep it readable.
+    return n.length > 16 ? n.slice(0, 16).trim() : n;
+  }
+
+  function ensureManifestIdentity(manifestObj, appName) {
+    manifestObj.name = appName;
+    manifestObj.short_name = makeShortName(appName);
+    return manifestObj;
+  }
+
+  function getIconSrcFromManifest(manifestObj, size) {
+    const icons = Array.isArray(manifestObj?.icons) ? manifestObj.icons : [];
+    const target = icons.find(i => String(i?.sizes || "") === size) || icons[0];
+    const src = String(target?.src || "icons/icon-192.png");
+    return src;
+  }
+
+  function updateFanIndexHtmlIdentity(htmlText, appName, appleTouchHref) {
+    let html = String(htmlText || "");
+
+    // 1) <title>
+    if (/<title>.*?<\/title>/i.test(html)) {
+      html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(appName)}</title>`);
+    } else {
+      html = html.replace(/<head[^>]*>/i, (m) => `${m}\n<title>${escapeHtml(appName)}</title>`);
+    }
+
+    // 2) apple-mobile-web-app-title
+    if (/<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]*>/i.test(html)) {
+      html = html.replace(
+        /<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]*>/i,
+        `<meta name="apple-mobile-web-app-title" content="${escapeAttr(appName)}">`
+      );
+    } else {
+      html = html.replace(/<\/head>/i,
+        `  <meta name="apple-mobile-web-app-title" content="${escapeAttr(appName)}">\n</head>`
+      );
+    }
+
+    // 3) application-name (nice for some Android launchers)
+    if (/<meta[^>]+name=["']application-name["'][^>]*>/i.test(html)) {
+      html = html.replace(
+        /<meta[^>]+name=["']application-name["'][^>]*>/i,
+        `<meta name="application-name" content="${escapeAttr(appName)}">`
+      );
+    } else {
+      html = html.replace(/<\/head>/i,
+        `  <meta name="application-name" content="${escapeAttr(appName)}">\n</head>`
+      );
+    }
+
+    // 4) apple-touch-icon (iOS Home Screen icon)
+    const appleTag = `<link rel="apple-touch-icon" href="${escapeAttr(appleTouchHref)}">`;
+    if (/<link[^>]+rel=["']apple-touch-icon["'][^>]*>/i.test(html)) {
+      html = html.replace(
+        /<link[^>]+rel=["']apple-touch-icon["'][^>]*>/i,
+        appleTag
+      );
+    } else {
+      html = html.replace(/<\/head>/i, `  ${appleTag}\n</head>`);
+    }
+
+    // 5) regular favicon (helps tabs)
+    const icoTag = `<link rel="icon" href="${escapeAttr(appleTouchHref)}">`;
+    if (/<link[^>]+rel=["']icon["'][^>]*>/i.test(html)) {
+      html = html.replace(/<link[^>]+rel=["']icon["'][^>]*>/i, icoTag);
+    } else {
+      html = html.replace(/<\/head>/i, `  ${icoTag}\n</head>`);
+    }
+
+    return html;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+  function escapeAttr(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll(`"`, "&quot;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  // ===== Version bump =====
+  // IMPORTANT: iOS ignores querystring caching sometimes for Home Screen.
+  // Fix = versioned FILENAMES so the URL path changes.
+  function bumpManifestVersionAndIconPaths(manifestObj) {
     const currentStart = String(manifestObj.start_url || "./?v=1");
     const m = currentStart.match(/v=(\d+)/);
     const next = m ? Number(m[1]) + 1 : 2;
 
     manifestObj.start_url = `./?v=${next}`;
 
-    if (Array.isArray(manifestObj.icons)) {
-      manifestObj.icons = manifestObj.icons.map((icon) => {
-        const src = String(icon.src || "");
-        const clean = src.split("?")[0];
-        return { ...icon, src: `${clean}?v=${next}` };
-      });
-    }
+    // Force versioned filename paths (no ?v=)
+    manifestObj.icons = [
+      { src: `icons/icon-192-v${next}.png`, sizes: "192x192", type: "image/png" },
+      { src: `icons/icon-512-v${next}.png`, sizes: "512x512", type: "image/png" },
+    ];
 
     return next;
   }
 
-  // ===== UI EVENTS (kept minimal, no redesign) =====
+  // ===== UI EVENTS =====
 
   el.token?.addEventListener("input", () => {
     const t = (el.token.value || "").trim();
@@ -312,7 +430,6 @@
     try {
       setPill("warn", "STATUS: loading…");
 
-      // Always load public JSON first (never blocked by GitHub API)
       const current = await fetchPublicJson(el.contentUrl.value || DEFAULT_CONTENT_URL);
 
       if (el.name) el.name.value = current?.name || "";
@@ -323,7 +440,6 @@
       if (el.contactEmail) el.contactEmail.value = current?.contactEmail || "";
       if (el.contactLabel) el.contactLabel.value = current?.contactLabel || "";
 
-      // Then try SHA (non-fatal if it fails)
       const token = (el.token?.value || localStorage.getItem(LS_TOKEN) || "").trim();
       if (token) {
         try {
@@ -346,13 +462,12 @@
     }
   });
 
-  // ===== PUBLISH =====
+  // ===== PUBLISH (content.json + identity sync) =====
 
   el.btnPublish?.addEventListener("click", async () => {
     try {
       const token = requireToken();
 
-      // Get fresh SHA (will work because path encoding is fixed)
       lastRemoteSha = await ghGetFileSha(token, TARGET_PATH);
       if (el.lastSha) el.lastSha.textContent = `sha: ${lastRemoteSha}`;
 
@@ -371,6 +486,45 @@
         if (el.lastSha) el.lastSha.textContent = `sha: ${result.content.sha}`;
       }
 
+      // ✅ Universal: keep manifest + iOS head identity in sync with creator name
+      const appName = safeAppNameFromDraft(draft);
+
+      try {
+        const mf = await ghGetFileMeta(token, MANIFEST_PATH);
+        const mfText = fromBase64Utf8(mf.content || "");
+        const mfJson = JSON.parse(mfText);
+
+        ensureManifestIdentity(mfJson, appName);
+
+        await ghPutFile(
+          token,
+          MANIFEST_PATH,
+          mf.sha,
+          toBase64Utf8(JSON.stringify(mfJson, null, 2)),
+          "BASE V1: sync manifest name"
+        );
+
+        // Update Fan App index.html for iOS name/icon binding
+        const idx = await ghGetFileMeta(token, FAN_INDEX_PATH);
+        const idxText = fromBase64Utf8(idx.content || "");
+
+        const iconHref = getIconSrcFromManifest(mfJson, "192x192");
+        const idxNew = updateFanIndexHtmlIdentity(idxText, appName, iconHref);
+
+        await ghPutFile(
+          token,
+          FAN_INDEX_PATH,
+          idx.sha,
+          toBase64Utf8(idxNew),
+          "BASE V1: sync iOS app title"
+        );
+
+        log("Identity synced (manifest + iOS head).");
+      } catch (idErr) {
+        // Non-fatal: content publish is the main action
+        log(`Identity sync skipped: ${idErr.message}`);
+      }
+
       setPill("ok", "STATUS: published");
       log("Publish success.");
 
@@ -380,7 +534,7 @@
     }
   });
 
-  // ===== ICON UPDATE + MANIFEST BUMP =====
+  // ===== ICON UPDATE + MANIFEST BUMP + iOS HEAD UPDATE =====
 
   el.btnUpdateIcon?.addEventListener("click", async () => {
     try {
@@ -392,32 +546,52 @@
 
       const base64Data = await fileToBase64(file);
 
-      const path192 = "Fan App/icons/icon-192.png";
-      const path512 = "Fan App/icons/icon-512.png";
-
-      const sha192 = await ghGetFileSha(token, path192);
-      const sha512 = await ghGetFileSha(token, path512);
-
-      await ghPutFile(token, path192, sha192, base64Data, "BASE V1: update icon 192");
-      await ghPutFile(token, path512, sha512, base64Data, "BASE V1: update icon 512");
-
-      // bump manifest ?v= so installed PWAs pull new icon URLs
+      // Read manifest, bump version, switch to versioned icon filenames
       const mf = await ghGetFileMeta(token, MANIFEST_PATH);
       const mfText = fromBase64Utf8(mf.content || "");
       const mfJson = JSON.parse(mfText);
 
-      const nextV = bumpManifestVersion(mfJson);
+      // Keep identity synced too
+      const draft = buildDraft();
+      const appName = safeAppNameFromDraft(draft);
+      ensureManifestIdentity(mfJson, appName);
 
+      const nextV = bumpManifestVersionAndIconPaths(mfJson);
+
+      // Upload icons to the NEW versioned paths (creates files if missing)
+      const icon192Src = String(mfJson.icons?.[0]?.src || `icons/icon-192-v${nextV}.png`);
+      const icon512Src = String(mfJson.icons?.[1]?.src || `icons/icon-512-v${nextV}.png`);
+
+      const path192 = `Fan App/${icon192Src}`;
+      const path512 = `Fan App/${icon512Src}`;
+
+      await ghUpsertFile(token, path192, base64Data, `BASE V1: write ${icon192Src}`);
+      await ghUpsertFile(token, path512, base64Data, `BASE V1: write ${icon512Src}`);
+
+      // Write manifest
       await ghPutFile(
         token,
         MANIFEST_PATH,
         mf.sha,
         toBase64Utf8(JSON.stringify(mfJson, null, 2)),
-        `BASE V1: bump manifest icon version v=${nextV}`
+        `BASE V1: bump manifest + identity v=${nextV}`
       );
 
-      if (el.appIconStatus) el.appIconStatus.textContent = `Icon updated. Manifest v=${nextV}`;
-      log(`Icon updated + manifest bumped to v=${nextV}.`);
+      // Update Fan App index.html (iOS Home Screen uses this)
+      const idx = await ghGetFileMeta(token, FAN_INDEX_PATH);
+      const idxText = fromBase64Utf8(idx.content || "");
+      const idxNew = updateFanIndexHtmlIdentity(idxText, appName, icon192Src);
+
+      await ghPutFile(
+        token,
+        FAN_INDEX_PATH,
+        idx.sha,
+        toBase64Utf8(idxNew),
+        `BASE V1: sync iOS icon+title v=${nextV}`
+      );
+
+      if (el.appIconStatus) el.appIconStatus.textContent = `Icon updated. Version v=${nextV}`;
+      log(`Icon updated + manifest/index synced to v=${nextV}.`);
 
     } catch (e) {
       if (el.appIconStatus) el.appIconStatus.textContent = `Error: ${e.message}`;
