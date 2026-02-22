@@ -2,10 +2,16 @@
   "name": "DJ TEST8",
   "bio": "MO FIYA 1",
   "links": [
-    { "label": "Instagram", "url": "https://instagram.com/" },
-    { "label": "YouTube", "url": "https://youtube.com/" }
+    {
+      "label": "Instagram",
+      "url": "https://instagram.com/"
+    },
+    {
+      "label": "YouTube",
+      "url": "https://youtube.com/"
+    }
   ],
-  "backgroundColor": "#b52a57",
+  "backgroundColor": "#0042aa",
   "contactEmail": "soliddreamz@gmail.com",
   "contactLabel": "Connect"
 }
