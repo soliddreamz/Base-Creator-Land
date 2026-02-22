@@ -1,14 +1,18 @@
-/* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
-   - Publishes Fan App/content.json via GitHub API
-   - Restores Pilot icon overwrite behavior
-   - No architecture changes
+/* BASE Creator Dashboard — V1 Publisher (Tier 0 Stable)
+   - Publishes Fan App/content.json
+   - Updates app icons (192 + 512)
+   - Automatically bumps manifest icon version (?v=)
+   - No structural changes
 */
+
 (() => {
 
   const OWNER = "soliddreamz";
   const REPO = "Base-Creator-Land";
   const BRANCH = "main";
   const TARGET_PATH = "Fan App/content.json";
+  const MANIFEST_PATH = "Fan App/manifest.json";
+
   const DEFAULT_CONTENT_URL =
     `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
 
@@ -25,7 +29,6 @@
     name: $("name"),
     bio: $("bio"),
     backgroundColor: $("backgroundColor"),
-    links: $("links"),
 
     linkLabelInput: $("linkLabelInput"),
     linkUrlInput: $("linkUrlInput"),
@@ -39,7 +42,6 @@
     appIconFile: $("appIconFile"),
     btnUpdateIcon: $("btnUpdateIcon"),
     appIconStatus: $("appIconStatus"),
-    appIconPreview: $("appIconPreview"),
 
     previewName: $("pName"),
     previewBio: $("pBio"),
@@ -62,85 +64,6 @@
   function setPill(type, text) {
     el.statePill.className = `pill ${type}`;
     el.statePill.textContent = text;
-  }
-
-  function syncLinksToEngine() {
-    if (el.links) el.links.value = JSON.stringify(linkState, null, 2);
-  }
-
-  function renderLinks() {
-    if (!el.linksList) return;
-
-    el.linksList.innerHTML = "";
-    if (el.previewLinks) el.previewLinks.innerHTML = "";
-
-    linkState.forEach((link, index) => {
-      const row = document.createElement("div");
-      row.className = "linkRow";
-
-      const text = document.createElement("div");
-      text.className = "linkText";
-      text.textContent = `${link.label} — ${link.url}`;
-
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.textContent = "Remove";
-      removeBtn.onclick = () => {
-        linkState.splice(index, 1);
-        renderLinks();
-        syncLinksToEngine();
-        enablePublishIfReady();
-      };
-
-      row.appendChild(text);
-      row.appendChild(removeBtn);
-      el.linksList.appendChild(row);
-
-      if (el.previewLinks) {
-        const p = document.createElement("div");
-        p.textContent = link.label;
-        el.previewLinks.appendChild(p);
-      }
-    });
-  }
-
-  function hydrateLinks(arr) {
-    linkState = Array.isArray(arr) ? [...arr] : [];
-    renderLinks();
-    syncLinksToEngine();
-  }
-
-  function buildDraft() {
-    const draft = {
-      name: (el.name?.value || "").trim(),
-      bio: (el.bio?.value || "").trim(),
-      links: linkState,
-      backgroundColor: el.backgroundColor?.value || "#000000"
-    };
-
-    const ce = (el.contactEmail?.value || "").trim();
-    const cl = (el.contactLabel?.value || "").trim();
-
-    if (ce) draft.contactEmail = ce;
-    if (cl) draft.contactLabel = cl;
-
-    if (!draft.name) delete draft.name;
-    if (!draft.bio) delete draft.bio;
-
-    return draft;
-  }
-
-  function refreshPreview() {
-    const draft = buildDraft();
-    if (el.previewName) el.previewName.textContent = draft.name || "—";
-    if (el.previewBio) el.previewBio.textContent = draft.bio || "—";
-    return true;
-  }
-
-  function enablePublishIfReady() {
-    const hasToken = (el.token?.value || "").trim().length > 0;
-    el.btnPublish.disabled = !(hasToken && lastRemoteSha);
-    refreshPreview();
   }
 
   function requireToken() {
@@ -177,13 +100,12 @@
     });
   }
 
-  async function ghGetFileSha(token, path) {
+  async function ghGetFile(token, path) {
     const api =
       `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}?ref=${BRANCH}`;
     const res = await fetch(api, { headers: ghHeaders(token) });
     if (!res.ok) throw new Error(`GitHub GET failed (${res.status})`);
-    const data = await res.json();
-    return data.sha;
+    return await res.json();
   }
 
   async function ghPutFile(token, path, sha, contentBase64, message) {
@@ -207,46 +129,40 @@
     return await res.json();
   }
 
-  async function fetchPublicJson(url) {
-    const u = new URL(url);
-    u.searchParams.set("ts", String(Date.now()));
-    const res = await fetch(u.toString(), { cache: "no-store" });
-    if (!res.ok) throw new Error(`Failed to load content.json (${res.status})`);
-    return await res.json();
+  function buildDraft() {
+    const draft = {
+      name: (el.name?.value || "").trim(),
+      bio: (el.bio?.value || "").trim(),
+      links: linkState,
+      backgroundColor: el.backgroundColor?.value || "#000000"
+    };
+
+    const ce = (el.contactEmail?.value || "").trim();
+    const cl = (el.contactLabel?.value || "").trim();
+
+    if (ce) draft.contactEmail = ce;
+    if (cl) draft.contactLabel = cl;
+
+    if (!draft.name) delete draft.name;
+    if (!draft.bio) delete draft.bio;
+
+    return draft;
   }
 
-  el.btnLoad?.addEventListener("click", async () => {
-    try {
-      setPill("warn", "STATUS: loading…");
-      const current = await fetchPublicJson(el.contentUrl.value || DEFAULT_CONTENT_URL);
+  async function fetchPublicJson(url) {
+    const u = new URL(url);
+    u.searchParams.set("ts", Date.now());
+    const res = await fetch(u.toString(), { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to load content.json");
+    return res.json();
+  }
 
-      if (el.name) el.name.value = current?.name || "";
-      if (el.bio) el.bio.value = current?.bio || "";
-      if (el.backgroundColor) el.backgroundColor.value = current?.backgroundColor || "#000000";
-      hydrateLinks(current?.links);
-
-      if (el.contactEmail) el.contactEmail.value = current?.contactEmail || "";
-      if (el.contactLabel) el.contactLabel.value = current?.contactLabel || "";
-
-      const token = el.token?.value || localStorage.getItem(LS_TOKEN);
-      if (token) {
-        lastRemoteSha = await ghGetFileSha(token, TARGET_PATH);
-        el.lastSha.textContent = `sha: ${lastRemoteSha}`;
-      }
-
-      enablePublishIfReady();
-      setPill("warn", "STATUS: loaded");
-      log("Loaded.");
-    } catch (e) {
-      setPill("bad", "STATUS: load failed");
-      log(e.message);
-    }
-  });
+  // ===== Publish content.json =====
 
   el.btnPublish?.addEventListener("click", async () => {
     try {
       const token = requireToken();
-      lastRemoteSha = await ghGetFileSha(token, TARGET_PATH);
+      const file = await ghGetFile(token, TARGET_PATH);
 
       const draft = buildDraft();
       const jsonText = JSON.stringify(draft, null, 2);
@@ -254,7 +170,7 @@
       const result = await ghPutFile(
         token,
         TARGET_PATH,
-        lastRemoteSha,
+        file.sha,
         toBase64Utf8(jsonText),
         "BASE V1: publish content.json"
       );
@@ -271,7 +187,7 @@
     }
   });
 
-  // ===== RESTORED PILOT ICON UPDATE =====
+  // ===== Complete Icon Chain =====
 
   el.btnUpdateIcon?.addEventListener("click", async () => {
     try {
@@ -283,17 +199,44 @@
 
       const base64Data = await fileToBase64(file);
 
-      const path192 = "Fan App/icons/icon-192.png";
-      const path512 = "Fan App/icons/icon-512.png";
+      // Overwrite icon files
+      const icon192Path = "Fan App/icons/icon-192.png";
+      const icon512Path = "Fan App/icons/icon-512.png";
 
-      const sha192 = await ghGetFileSha(token, path192);
-      const sha512 = await ghGetFileSha(token, path512);
+      const icon192File = await ghGetFile(token, icon192Path);
+      const icon512File = await ghGetFile(token, icon512Path);
 
-      await ghPutFile(token, path192, sha192, base64Data, "BASE V1: update icon 192");
-      await ghPutFile(token, path512, sha512, base64Data, "BASE V1: update icon 512");
+      await ghPutFile(token, icon192Path, icon192File.sha, base64Data, "BASE V1: update icon 192");
+      await ghPutFile(token, icon512Path, icon512File.sha, base64Data, "BASE V1: update icon 512");
 
-      el.appIconStatus.textContent = "Icon updated. Reinstall app if needed.";
-      log("Icon updated successfully.");
+      // Update manifest version
+      const manifestFile = await ghGetFile(token, MANIFEST_PATH);
+      const manifestJson = JSON.parse(atob(manifestFile.content));
+
+      const bumpVersion = (src) => {
+        const match = src.match(/\?v=(\d+)/);
+        if (!match) return src + "?v=1";
+        const next = parseInt(match[1], 10) + 1;
+        return src.replace(/\?v=\d+/, `?v=${next}`);
+      };
+
+      manifestJson.icons = manifestJson.icons.map(icon => ({
+        ...icon,
+        src: bumpVersion(icon.src)
+      }));
+
+      const updatedManifest = JSON.stringify(manifestJson, null, 2);
+
+      await ghPutFile(
+        token,
+        MANIFEST_PATH,
+        manifestFile.sha,
+        toBase64Utf8(updatedManifest),
+        "BASE V1: bump manifest icon version"
+      );
+
+      el.appIconStatus.textContent = "Icon updated everywhere.";
+      log("Icon chain completed successfully.");
 
     } catch (e) {
       el.appIconStatus.textContent = `Error: ${e.message}`;
@@ -302,16 +245,15 @@
   });
 
   function init() {
-    if (el.repoLabel) el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
-    if (el.contentUrl) el.contentUrl.value = DEFAULT_CONTENT_URL;
+    if (el.repoLabel)
+      el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
+
+    if (el.contentUrl)
+      el.contentUrl.value = DEFAULT_CONTENT_URL;
 
     const saved = localStorage.getItem(LS_TOKEN);
-    if (saved && el.token) el.token.value = saved;
-
-    if (el.backgroundColor) el.backgroundColor.value = "#000000";
-    hydrateLinks([]);
-    refreshPreview();
-    enablePublishIfReady();
+    if (saved && el.token)
+      el.token.value = saved;
   }
 
   init();
