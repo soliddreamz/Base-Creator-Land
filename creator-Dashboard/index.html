@@ -1,214 +1,920 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BASE Creator Dashboard — V1 Publisher</title>
-  <meta name="description" content="Manage your Fan App and publish updates." />
-  <link rel="manifest" href="./manifest.json" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BASE Creator Dashboard</title>
 
-  <style>
-    :root { color-scheme: dark; }
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#000; color:#fff; }
-    header { padding:16px; border-bottom:1px solid #222; }
-    main { padding:16px; max-width:980px; margin:0 auto; display:grid; gap:14px; }
+<style>
+  /* ===== DASHBOARD ONLY: stop layout jump / resize snap ===== */
+  html, body{
+    margin:0;
+    padding:0;
+    background:#000;
+    color:#fff;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100%;
+  }
 
-    .card { border:1px solid #222; border-radius:12px; padding:16px; background:#0a0a0a; }
+  /* Lock a stable reading width so “Load Current State” doesn’t reflow the whole page */
+  .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 18px 14px 40px;
+    box-sizing:border-box;
+  }
 
-    label { display:block; font-size:12px; opacity:.8; margin-bottom:6px; }
+  .top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:14px;
+  }
 
-    input, textarea, button {
-      width:100%;
-      box-sizing:border-box;
-      background:#000;
-      color:#fff;
-      border:1px solid #222;
-      border-radius:10px;
-      padding:10px;
-      font-size:14px;
-    }
+  h1{
+    font-size:34px;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.2px;
+  }
 
-    textarea { resize:vertical; }
+  .sub{
+    opacity:0.72;
+    margin:0;
+    font-size:16px;
+  }
 
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pill{
+    border:2px solid #caa300;
+    border-radius:999px;
+    padding:10px 14px;
+    font-weight:600;
+    min-width: 160px;
+    text-align:center;
+  }
+  .pill.ok{ border-color:#2ee06b; }
+  .pill.bad{ border-color:#ff4b4b; }
+  .pill.warn{ border-color:#caa300; }
 
-    .btnrow { display:flex; gap:10px; flex-wrap:wrap; }
+  .card{
+    border:1px solid #222;
+    background:#070707;
+    border-radius:18px;
+    padding:18px;
+    margin: 14px 0;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset;
+  }
 
-    button { cursor:pointer; width:auto; padding:10px 14px; }
-    button.primary { border-color:#444; }
-    button.danger { border-color:#662222; }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; opacity:0.9; }
 
-    .muted { opacity:.7; font-size:12px; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  .row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+  }
 
-    .pill { display:inline-block; padding:4px 10px; border:1px solid #222; border-radius:999px; font-size:12px; }
-    .ok { border-color:#2a4; }
-    .warn { border-color:#a82; }
-    .bad { border-color:#a22; }
+  .col{ flex:1; min-width: 240px; }
 
-    .divider { height:1px; background:#151515; margin:16px 0; }
+  label{
+    display:block;
+    font-size:13px;
+    opacity:0.75;
+    margin-bottom:6px;
+  }
 
-    .linkRow { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .linkText { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  input, textarea, button{
+    font: inherit;
+  }
 
-    .iconPreview { width:64px; height:64px; border-radius:14px; border:1px solid #222; display:none; }
+  input, textarea{
+    width:100%;
+    box-sizing:border-box;
+    border-radius:14px;
+    border:1px solid #2a2a2a;
+    background:#000;
+    color:#fff;
+    padding:12px 12px;
+    outline:none;
+  }
 
-    details { border:1px solid #222; border-radius:12px; padding:12px; background:#060606; }
-    summary { cursor:pointer; opacity:.8; }
-  </style>
+  textarea{
+    min-height:120px;
+    resize:vertical;
+  }
+
+  /* IMPORTANT: make Background Color show on desktop */
+  input[type="color"]{
+    height: 52px;
+    padding: 6px;
+    cursor: pointer;
+  }
+
+  .btnRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+
+  button{
+    border-radius:14px;
+    border:1px solid #2a2a2a;
+    background:#0b0b0b;
+    color:#fff;
+    padding:12px 16px;
+    cursor:pointer;
+  }
+  button:hover{ border-color:#444; }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .danger{
+    border-color:#5a1b1b !important;
+  }
+
+  .linksList{
+    margin-top:10px;
+  }
+  .linkRow{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 12px;
+    border:1px solid #222;
+    border-radius:14px;
+    margin-top:10px;
+    background:#050505;
+  }
+  .linkText{
+    opacity:0.92;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width: calc(100% - 110px);
+  }
+
+  .tiny{
+    font-size:12px;
+    opacity:0.65;
+    margin-top:6px;
+  }
+
+  #appIconPreview{
+    display:none;
+    max-width:120px;
+    margin-top:10px;
+    border-radius:14px;
+    border:1px solid #222;
+    background:#000;
+  }
+
+  .statusBox{
+    white-space:pre-wrap;
+    font-size:12px;
+    opacity:0.75;
+  }
+
+  /* Hide engine-only textarea (still needed by your script) */
+  .hiddenEngine{
+    position:absolute;
+    left:-99999px;
+    top:-99999px;
+    width:1px;
+    height:1px;
+    opacity:0;
+    pointer-events:none;
+  }
+</style>
 </head>
 
 <body>
+  <div class="wrap">
 
-<header>
-  <div style="display:flex; justify-content:space-between;">
-    <div>
-      <div style="font-size:18px; font-weight:700;">BASE Creator Dashboard</div>
-      <div class="muted">Manage your home app. Publish when ready.</div>
+    <div class="top">
+      <div>
+        <h1>BASE Creator Dashboard</h1>
+        <p class="sub">Manage your home app. Publish when ready.</p>
+      </div>
+      <div id="statePill" class="pill warn">STATUS: ready</div>
     </div>
-    <div id="statePill" class="pill warn">STATUS: not loaded</div>
+
+    <div class="card">
+      <div class="mono">
+        Repo: <span id="repoLabel"></span><br>
+        Target: Fan App/content.json
+      </div>
+
+      <div class="btnRow">
+        <button id="btnLoad" type="button">Load Current State</button>
+        <button id="btnPublish" type="button" disabled>Publish</button>
+        <button id="btnResetToken" type="button" class="danger">Reset Key</button>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <div class="col">
+          <label for="token">Creator Key</label>
+          <input id="token" type="password" autocomplete="off" />
+        </div>
+        <div class="col">
+          <label for="contentUrl">content.json URL</label>
+          <input id="contentUrl" type="text" />
+        </div>
+      </div>
+
+      <div class="tiny" id="lastSha">sha: —</div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="col">
+          <label for="name">Name</label>
+          <input id="name" type="text" />
+        </div>
+        <div class="col">
+          <label for="bio">Bio</label>
+          <input id="bio" type="text" />
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="backgroundColor">Background Color</label>
+        <!-- SAME ID your code expects -->
+        <input id="backgroundColor" type="color" value="#000000" />
+      </div>
+
+      <!-- engine-only (your code uses it) -->
+      <textarea id="links" class="hiddenEngine"></textarea>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Links</h3>
+
+      <div class="row">
+        <div class="col">
+          <label for="linkLabelInput">Link label</label>
+          <input id="linkLabelInput" type="text" placeholder="Instagram" />
+        </div>
+        <div class="col">
+          <label for="linkUrlInput">URL</label>
+          <input id="linkUrlInput" type="text" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div class="btnRow">
+        <button id="addLinkBtn" type="button">Add Link</button>
+        <button id="clearLinksBtn" type="button" class="danger">Clear Links</button>
+      </div>
+
+      <div id="linksList" class="linksList"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Connect Button</h3>
+
+      <div class="row">
+        <div class="col">
+          <label for="contactEmail">Email</label>
+          <input id="contactEmail" type="text" placeholder="name@email.com" />
+          <div class="tiny">If empty → no Connect button appears in Fan App.</div>
+        </div>
+        <div class="col">
+          <label for="contactLabel">Button label (optional)</label>
+          <input id="contactLabel" type="text" placeholder="Connect" />
+          <div class="tiny">Controls the text shown on the button.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">App Icon</h3>
+
+      <div class="row">
+        <div class="col">
+          <label for="appIconFile">Upload PNG</label>
+          <input id="appIconFile" type="file" accept="image/png" />
+          <div id="appIconStatus" class="tiny"></div>
+          <img id="appIconPreview" alt="Icon preview">
+        </div>
+        <div class="col" style="display:flex;align-items:flex-end;">
+          <button id="btnUpdateIcon" type="button">Update Icon</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Preview</h3>
+      <div class="row">
+        <div class="col">
+          <div class="tiny">Name</div>
+          <div id="pName" style="font-size:18px;font-weight:700;margin-top:4px;">—</div>
+        </div>
+        <div class="col">
+          <div class="tiny">Bio</div>
+          <div id="pBio" style="opacity:0.85;margin-top:4px;">—</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="tiny">Links</div>
+        <div id="pLinks" style="margin-top:6px;opacity:0.85;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">Status</h3>
+      <div id="status" class="statusBox"></div>
+    </div>
+
   </div>
-</header>
 
-<main>
+<script>
+/* BASE Creator Dashboard — V1 Publisher (Tier 0 Clean)
+   - Publishes Fan App/content.json via GitHub API
+   - Restores Pilot icon overwrite behavior (via versioned filenames)
+   - Universal identity fix:
+       * Updates Fan App/manifest.json name + short_name
+       * Updates Fan App/index.html <title> + apple-mobile-web-app-title
+       * Updates apple-touch-icon to match versioned icon
+   - Safely bumps version for icon refresh
+   - No architecture changes
+*/
+(() => {
 
-  <!-- SYSTEM CONTROL -->
-  <section class="card">
-    <div class="muted">
-      Repo: <span id="repoLabel" class="mono"></span><br/>
-      Target: <span class="mono">Fan App/content.json</span>
-    </div>
+  const OWNER = "soliddreamz";
+  const REPO = "Base-Creator-Land";
+  const BRANCH = "main";
 
-    <div class="btnrow" style="margin-top:12px;">
-      <button id="btnLoad" class="primary">Load Current State</button>
-      <button id="btnPublish" class="primary" disabled>Publish</button>
-      <button id="btnResetToken" class="danger">Reset Key</button>
-    </div>
+  const TARGET_PATH = "Fan App/content.json";
+  const MANIFEST_PATH = "Fan App/manifest.json";
+  const FAN_INDEX_PATH = "Fan App/index.html";
 
-    <div class="row" style="margin-top:16px;">
-      <div>
-        <label>Creator Key</label>
-        <input id="token" type="password" />
-      </div>
-      <div>
-        <label>content.json URL</label>
-        <input id="contentUrl" type="text" />
-      </div>
-    </div>
-  </section>
+  const DEFAULT_CONTENT_URL =
+    `https://${OWNER}.github.io/${REPO}/Fan%20App/content.json`;
 
-  <!-- CREATOR CONTROLS -->
-  <section class="card">
+  const $ = (id) => document.getElementById(id);
 
-    <div class="row">
-      <div>
-        <label>Name</label>
-        <input id="name" type="text" />
-      </div>
-      <div>
-        <label>Bio</label>
-        <input id="bio" type="text" />
-      </div>
-    </div>
+  const el = {
+    repoLabel: $("repoLabel"),
+    token: $("token"),
+    contentUrl: $("contentUrl"),
+    btnLoad: $("btnLoad"),
+    btnPublish: $("btnPublish"),
+    btnResetToken: $("btnResetToken"),
 
-    <div style="margin-top:16px;">
-      <label>Background Color</label>
-      <input id="backgroundColor" type="color" value="#000000" />
-    </div>
+    name: $("name"),
+    bio: $("bio"),
+    backgroundColor: $("backgroundColor"),
+    links: $("links"),
 
-    <div class="divider"></div>
+    linkLabelInput: $("linkLabelInput"),
+    linkUrlInput: $("linkUrlInput"),
+    addLinkBtn: $("addLinkBtn"),
+    clearLinksBtn: $("clearLinksBtn"),
+    linksList: $("linksList"),
 
-    <!-- LINKS -->
-    <div>
-      <label>Links</label>
+    contactEmail: $("contactEmail"),
+    contactLabel: $("contactLabel"),
 
-      <div class="row">
-        <div>
-          <input id="linkLabelInput" type="text" placeholder="Link label" />
-        </div>
-        <div>
-          <input id="linkUrlInput" type="url" placeholder="https://..." />
-        </div>
-      </div>
+    appIconFile: $("appIconFile"),
+    btnUpdateIcon: $("btnUpdateIcon"),
+    appIconStatus: $("appIconStatus"),
+    appIconPreview: $("appIconPreview"),
 
-      <div class="btnrow" style="margin-top:12px;">
-        <button id="addLinkBtn" class="primary" type="button">Add Link</button>
-        <button id="clearLinksBtn" class="danger" type="button">Clear Links</button>
-      </div>
+    previewName: $("pName"),
+    previewBio: $("pBio"),
+    previewLinks: $("pLinks"),
 
-      <div id="linksList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
+    status: $("status"),
+    lastSha: $("lastSha"),
+    statePill: $("statePill"),
+  };
 
-      <!-- Hidden engine layer -->
-      <textarea id="links" style="display:none;"></textarea>
-    </div>
+  const LS_TOKEN = "base_creator_token_v1";
+  let lastRemoteSha = null;
+  let linkState = [];
 
-    <div class="divider"></div>
+  function log(line) {
+    const stamp = new Date().toLocaleString();
+    if (!el.status) return;
+    el.status.textContent = `[${stamp}] ${line}\n` + el.status.textContent;
+  }
 
-    <!-- CONNECT BUTTON (Tier 0) -->
-    <div>
-      <label>Connect Button</label>
-      <div class="row">
-        <div>
-          <input id="contactEmail" type="text" placeholder="email address (ex: you@gmail.com)" />
-          <div class="muted" style="margin-top:6px;">
-            If empty → no Connect button appears in Fan App.
-          </div>
-        </div>
-        <div>
-          <input id="contactLabel" type="text" placeholder="button label (default: Connect)" />
-          <div class="muted" style="margin-top:6px;">
-            Optional. Controls the text shown on the button.
-          </div>
-        </div>
-      </div>
-    </div>
+  function setPill(type, text) {
+    if (!el.statePill) return;
+    el.statePill.className = `pill ${type}`;
+    el.statePill.textContent = text;
+  }
 
-    <div class="divider"></div>
+  function syncLinksToEngine() {
+    if (el.links) el.links.value = JSON.stringify(linkState, null, 2);
+  }
 
-    <!-- APP ICON (RESTORED) -->
-    <div>
-      <label>App Icon</label>
-      <div class="row">
-        <div>
-          <input id="appIconFile" type="file" accept="image/png,image/jpeg,image/webp" />
-          <div class="muted" style="margin-top:6px;">Square image recommended (512×512).</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:14px;">
-          <img id="appIconPreview" class="iconPreview" alt="icon preview" />
-          <div>
-            <button id="btnUpdateIcon" class="primary" type="button">Update Icon</button>
-            <div id="appIconStatus" class="muted" style="margin-top:6px;">—</div>
-          </div>
-        </div>
-      </div>
-    </div>
+  function renderLinks() {
+    if (!el.linksList) return;
 
-    <div class="divider"></div>
+    el.linksList.innerHTML = "";
+    if (el.previewLinks) el.previewLinks.innerHTML = "";
 
-    <!-- PREVIEW -->
-    <div>
-      <label>Preview</label>
-      <div id="previewCard" class="card" style="background:#000; border-color:#151515;">
-        <div id="pName" style="font-weight:700;">—</div>
-        <div id="pBio" class="muted" style="margin-top:6px;">—</div>
-        <div id="pLinks" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
-      </div>
-    </div>
+    linkState.forEach((link, index) => {
+      const row = document.createElement("div");
+      row.className = "linkRow";
 
-  </section>
+      const text = document.createElement("div");
+      text.className = "linkText";
+      text.textContent = `${link.label} — ${link.url}`;
 
-  <!-- SYSTEM DETAILS -->
-  <details>
-    <summary>System Details</summary>
-    <div style="margin-top:10px;">
-      <div id="lastSha" class="mono muted">sha: —</div>
-      <div id="status" class="mono muted" style="white-space:pre-wrap;">Ready.</div>
-    </div>
-  </details>
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.textContent = "Remove";
+      removeBtn.onclick = () => {
+        linkState.splice(index, 1);
+        renderLinks();
+        syncLinksToEngine();
+        enablePublishIfReady();
+      };
 
-</main>
+      row.appendChild(text);
+      row.appendChild(removeBtn);
+      el.linksList.appendChild(row);
 
-<script src="./dashboard.js"></script>
-<script src="./sw-register.js"></script>
+      if (el.previewLinks) {
+        const p = document.createElement("div");
+        p.textContent = link.label;
+        el.previewLinks.appendChild(p);
+      }
+    });
+  }
+
+  function hydrateLinks(arr) {
+    linkState = Array.isArray(arr) ? [...arr] : [];
+    renderLinks();
+    syncLinksToEngine();
+  }
+
+  function buildDraft() {
+    const draft = {
+      name: (el.name?.value || "").trim(),
+      bio: (el.bio?.value || "").trim(),
+      links: linkState,
+      backgroundColor: el.backgroundColor?.value || "#000000"
+    };
+
+    const ce = (el.contactEmail?.value || "").trim();
+    const cl = (el.contactLabel?.value || "").trim();
+
+    if (ce) draft.contactEmail = ce;
+    if (cl) draft.contactLabel = cl;
+
+    if (!draft.name) delete draft.name;
+    if (!draft.bio) delete draft.bio;
+
+    return draft;
+  }
+
+  function refreshPreview() {
+    const draft = buildDraft();
+    if (el.previewName) el.previewName.textContent = draft.name || "—";
+    if (el.previewBio) el.previewBio.textContent = draft.bio || "—";
+  }
+
+  function enablePublishIfReady() {
+    const hasToken = (el.token?.value || "").trim().length > 0;
+    if (el.btnPublish) el.btnPublish.disabled = !(hasToken && lastRemoteSha);
+    refreshPreview();
+  }
+
+  function requireToken() {
+    const token = (el.token?.value || "").trim();
+    if (!token) throw new Error("Missing creator key.");
+    return token;
+  }
+
+  function ghHeaders(token) {
+    return {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json",
+    };
+  }
+
+  function toBase64Utf8(str) {
+    const utf8 = new TextEncoder().encode(str);
+    let bin = "";
+    utf8.forEach((b) => bin += String.fromCharCode(b));
+    return btoa(bin);
+  }
+
+  function fromBase64Utf8(b64) {
+    const bytes = Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = String(reader.result).split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function ghEncodePath(path) {
+    return path.split("/").map(encodeURIComponent).join("/");
+  }
+
+  async function ghGetFileMeta(token, path) {
+    const api =
+      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${ghEncodePath(path)}?ref=${BRANCH}`;
+    const res = await fetch(api, { headers: ghHeaders(token) });
+    if (!res.ok) throw new Error(`GitHub GET failed (${res.status})`);
+    return await res.json();
+  }
+
+  async function ghGetFileSha(token, path) {
+    const data = await ghGetFileMeta(token, path);
+    return data.sha;
+  }
+
+  async function ghPutFile(token, path, sha, contentBase64, message) {
+    const api =
+      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${ghEncodePath(path)}`;
+
+    const body = {
+      message,
+      content: contentBase64,
+      branch: BRANCH,
+    };
+
+    if (sha) body.sha = sha;
+
+    const res = await fetch(api, {
+      method: "PUT",
+      headers: ghHeaders(token),
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`GitHub PUT failed (${res.status})`);
+    return await res.json();
+  }
+
+  async function ghUpsertFile(token, path, contentBase64, message) {
+    try {
+      const sha = await ghGetFileSha(token, path);
+      return await ghPutFile(token, path, sha, contentBase64, message);
+    } catch (e) {
+      if (String(e.message || "").includes("(404)")) {
+        return await ghPutFile(token, path, null, contentBase64, message);
+      }
+      throw e;
+    }
+  }
+
+  async function fetchPublicJson(url) {
+    const u = new URL(url);
+    u.searchParams.set("ts", String(Date.now()));
+    const res = await fetch(u.toString(), { cache: "no-store" });
+    if (!res.ok) throw new Error(`Failed to load content.json (${res.status})`);
+    return await res.json();
+  }
+
+  function safeAppNameFromDraft(draft) {
+    const n = String(draft?.name || "").trim();
+    return n || "Creator Home";
+  }
+
+  function makeShortName(name) {
+    const n = String(name || "").trim();
+    if (!n) return "Home";
+    return n.length > 16 ? n.slice(0, 16).trim() : n;
+  }
+
+  function ensureManifestIdentity(manifestObj, appName) {
+    manifestObj.name = appName;
+    manifestObj.short_name = makeShortName(appName);
+    return manifestObj;
+  }
+
+  function getIconSrcFromManifest(manifestObj, size) {
+    const icons = Array.isArray(manifestObj?.icons) ? manifestObj.icons : [];
+    const target = icons.find(i => String(i?.sizes || "") === size) || icons[0];
+    const src = String(target?.src || "icons/icon-192.png");
+    return src;
+  }
+
+  function updateFanIndexHtmlIdentity(htmlText, appName, appleTouchHref) {
+    let html = String(htmlText || "");
+
+    if (/<title>.*?<\/title>/i.test(html)) {
+      html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(appName)}</title>`);
+    } else {
+      html = html.replace(/<head[^>]*>/i, (m) => `${m}\n<title>${escapeHtml(appName)}</title>`);
+    }
+
+    if (/<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]*>/i.test(html)) {
+      html = html.replace(
+        /<meta[^>]+name=["']apple-mobile-web-app-title["'][^>]*>/i,
+        `<meta name="apple-mobile-web-app-title" content="${escapeAttr(appName)}">`
+      );
+    } else {
+      html = html.replace(/<\/head>/i,
+        `  <meta name="apple-mobile-web-app-title" content="${escapeAttr(appName)}">\n</head>`
+      );
+    }
+
+    if (/<meta[^>]+name=["']application-name["'][^>]*>/i.test(html)) {
+      html = html.replace(
+        /<meta[^>]+name=["']application-name["'][^>]*>/i,
+        `<meta name="application-name" content="${escapeAttr(appName)}">`
+      );
+    } else {
+      html = html.replace(/<\/head>/i,
+        `  <meta name="application-name" content="${escapeAttr(appName)}">\n</head>`
+      );
+    }
+
+    const appleTag = `<link rel="apple-touch-icon" href="${escapeAttr(appleTouchHref)}">`;
+    if (/<link[^>]+rel=["']apple-touch-icon["'][^>]*>/i.test(html)) {
+      html = html.replace(
+        /<link[^>]+rel=["']apple-touch-icon["'][^>]*>/i,
+        appleTag
+      );
+    } else {
+      html = html.replace(/<\/head>/i, `  ${appleTag}\n</head>`);
+    }
+
+    const icoTag = `<link rel="icon" href="${escapeAttr(appleTouchHref)}">`;
+    if (/<link[^>]+rel=["']icon["'][^>]*>/i.test(html)) {
+      html = html.replace(/<link[^>]+rel=["']icon["'][^>]*>/i, icoTag);
+    } else {
+      html = html.replace(/<\/head>/i, `  ${icoTag}\n</head>`);
+    }
+
+    return html;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+  function escapeAttr(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll(`"`, "&quot;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function bumpManifestVersionAndIconPaths(manifestObj) {
+    const currentStart = String(manifestObj.start_url || "./?v=1");
+    const m = currentStart.match(/v=(\d+)/);
+    const next = m ? Number(m[1]) + 1 : 2;
+
+    manifestObj.start_url = `./?v=${next}`;
+
+    manifestObj.icons = [
+      { src: `icons/icon-192-v${next}.png`, sizes: "192x192", type: "image/png" },
+      { src: `icons/icon-512-v${next}.png`, sizes: "512x512", type: "image/png" },
+    ];
+
+    return next;
+  }
+
+  el.token?.addEventListener("input", () => {
+    const t = (el.token.value || "").trim();
+    if (t) localStorage.setItem(LS_TOKEN, t);
+    enablePublishIfReady();
+  });
+
+  el.btnResetToken?.addEventListener("click", () => {
+    localStorage.removeItem(LS_TOKEN);
+    if (el.token) el.token.value = "";
+    lastRemoteSha = null;
+    if (el.lastSha) el.lastSha.textContent = "sha: —";
+    enablePublishIfReady();
+    log("Creator key reset.");
+  });
+
+  [el.name, el.bio, el.backgroundColor, el.contactEmail, el.contactLabel].forEach((node) => {
+    node?.addEventListener("input", () => enablePublishIfReady());
+  });
+
+  el.addLinkBtn?.addEventListener("click", () => {
+    const label = (el.linkLabelInput?.value || "").trim();
+    const url = (el.linkUrlInput?.value || "").trim();
+    if (!url) return;
+
+    linkState.push({
+      label: label || url,
+      url
+    });
+
+    if (el.linkLabelInput) el.linkLabelInput.value = "";
+    if (el.linkUrlInput) el.linkUrlInput.value = "";
+
+    renderLinks();
+    syncLinksToEngine();
+    enablePublishIfReady();
+  });
+
+  el.clearLinksBtn?.addEventListener("click", () => {
+    linkState = [];
+    renderLinks();
+    syncLinksToEngine();
+    enablePublishIfReady();
+  });
+
+  el.appIconFile?.addEventListener("change", () => {
+    const file = el.appIconFile?.files?.[0];
+    if (!file || !el.appIconPreview) return;
+    const url = URL.createObjectURL(file);
+    el.appIconPreview.src = url;
+    el.appIconPreview.style.display = "block";
+  });
+
+  el.btnLoad?.addEventListener("click", async () => {
+    try {
+      setPill("warn", "STATUS: loading…");
+
+      const current = await fetchPublicJson(el.contentUrl.value || DEFAULT_CONTENT_URL);
+
+      if (el.name) el.name.value = current?.name || "";
+      if (el.bio) el.bio.value = current?.bio || "";
+      if (el.backgroundColor) el.backgroundColor.value = current?.backgroundColor || "#000000";
+      hydrateLinks(current?.links);
+
+      if (el.contactEmail) el.contactEmail.value = current?.contactEmail || "";
+      if (el.contactLabel) el.contactLabel.value = current?.contactLabel || "";
+
+      const token = (el.token?.value || localStorage.getItem(LS_TOKEN) || "").trim();
+      if (token) {
+        try {
+          lastRemoteSha = await ghGetFileSha(token, TARGET_PATH);
+          if (el.lastSha) el.lastSha.textContent = `sha: ${lastRemoteSha}`;
+        } catch (shaErr) {
+          lastRemoteSha = null;
+          if (el.lastSha) el.lastSha.textContent = "sha: —";
+          log(`SHA lookup skipped: ${shaErr.message}`);
+        }
+      }
+
+      enablePublishIfReady();
+      setPill("warn", "STATUS: loaded");
+      log("Loaded.");
+
+    } catch (e) {
+      setPill("bad", "STATUS: load failed");
+      log(e.message);
+    }
+  });
+
+  el.btnPublish?.addEventListener("click", async () => {
+    try {
+      const token = requireToken();
+
+      lastRemoteSha = await ghGetFileSha(token, TARGET_PATH);
+      if (el.lastSha) el.lastSha.textContent = `sha: ${lastRemoteSha}`;
+
+      const draft = buildDraft();
+      const jsonText = JSON.stringify(draft, null, 2);
+
+      const result = await ghPutFile(
+        token,
+        TARGET_PATH,
+        lastRemoteSha,
+        toBase64Utf8(jsonText),
+        "BASE V1: publish content.json"
+      );
+
+      if (result?.content?.sha) {
+        if (el.lastSha) el.lastSha.textContent = `sha: ${result.content.sha}`;
+      }
+
+      const appName = safeAppNameFromDraft(draft);
+
+      try {
+        const mf = await ghGetFileMeta(token, MANIFEST_PATH);
+        const mfText = fromBase64Utf8(mf.content || "");
+        const mfJson = JSON.parse(mfText);
+
+        ensureManifestIdentity(mfJson, appName);
+
+        await ghPutFile(
+          token,
+          MANIFEST_PATH,
+          mf.sha,
+          toBase64Utf8(JSON.stringify(mfJson, null, 2)),
+          "BASE V1: sync manifest name"
+        );
+
+        const idx = await ghGetFileMeta(token, FAN_INDEX_PATH);
+        const idxText = fromBase64Utf8(idx.content || "");
+
+        const iconHref = getIconSrcFromManifest(mfJson, "192x192");
+        const idxNew = updateFanIndexHtmlIdentity(idxText, appName, iconHref);
+
+        await ghPutFile(
+          token,
+          FAN_INDEX_PATH,
+          idx.sha,
+          toBase64Utf8(idxNew),
+          "BASE V1: sync iOS app title"
+        );
+
+        log("Identity synced (manifest + iOS head).");
+      } catch (idErr) {
+        log(`Identity sync skipped: ${idErr.message}`);
+      }
+
+      setPill("ok", "STATUS: published");
+      log("Publish success.");
+
+    } catch (e) {
+      setPill("bad", "STATUS: publish failed");
+      log(e.message);
+    }
+  });
+
+  el.btnUpdateIcon?.addEventListener("click", async () => {
+    try {
+      const token = requireToken();
+      const file = el.appIconFile?.files?.[0];
+      if (!file) throw new Error("No file selected.");
+
+      if (el.appIconStatus) el.appIconStatus.textContent = "Uploading…";
+
+      const base64Data = await fileToBase64(file);
+
+      const mf = await ghGetFileMeta(token, MANIFEST_PATH);
+      const mfText = fromBase64Utf8(mf.content || "");
+      const mfJson = JSON.parse(mfText);
+
+      const draft = buildDraft();
+      const appName = safeAppNameFromDraft(draft);
+      ensureManifestIdentity(mfJson, appName);
+
+      const nextV = bumpManifestVersionAndIconPaths(mfJson);
+
+      const icon192Src = String(mfJson.icons?.[0]?.src || `icons/icon-192-v${nextV}.png`);
+      const icon512Src = String(mfJson.icons?.[1]?.src || `icons/icon-512-v${nextV}.png`);
+
+      const path192 = `Fan App/${icon192Src}`;
+      const path512 = `Fan App/${icon512Src}`;
+
+      await ghUpsertFile(token, path192, base64Data, `BASE V1: write ${icon192Src}`);
+      await ghUpsertFile(token, path512, base64Data, `BASE V1: write ${icon512Src}`);
+
+      await ghPutFile(
+        token,
+        MANIFEST_PATH,
+        mf.sha,
+        toBase64Utf8(JSON.stringify(mfJson, null, 2)),
+        `BASE V1: bump manifest + identity v=${nextV}`
+      );
+
+      const idx = await ghGetFileMeta(token, FAN_INDEX_PATH);
+      const idxText = fromBase64Utf8(idx.content || "");
+      const idxNew = updateFanIndexHtmlIdentity(idxText, appName, icon192Src);
+
+      await ghPutFile(
+        token,
+        FAN_INDEX_PATH,
+        idx.sha,
+        toBase64Utf8(idxNew),
+        `BASE V1: sync iOS icon+title v=${nextV}`
+      );
+
+      if (el.appIconStatus) el.appIconStatus.textContent = `Icon updated. Version v=${nextV}`;
+      log(`Icon updated + manifest/index synced to v=${nextV}.`);
+
+    } catch (e) {
+      if (el.appIconStatus) el.appIconStatus.textContent = `Error: ${e.message}`;
+      log(e.message);
+    }
+  });
+
+  function init() {
+    if (el.repoLabel) el.repoLabel.textContent = `${OWNER}/${REPO}@${BRANCH}`;
+    if (el.contentUrl) el.contentUrl.value = DEFAULT_CONTENT_URL;
+
+    const saved = localStorage.getItem(LS_TOKEN);
+    if (saved && el.token) el.token.value = saved;
+
+    if (el.backgroundColor) el.backgroundColor.value = "#000000";
+    hydrateLinks([]);
+    refreshPreview();
+    enablePublishIfReady();
+    setPill("warn", "STATUS: ready");
+  }
+
+  init();
+
+})();
+</script>
+
 </body>
 </html>
