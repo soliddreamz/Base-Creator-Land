@@ -12,27 +12,47 @@
     body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#000; color:#fff; }
     header { padding:16px; border-bottom:1px solid #222; }
     main { padding:16px; max-width:980px; margin:0 auto; display:grid; gap:14px; }
+
     .card { border:1px solid #222; border-radius:12px; padding:16px; background:#0a0a0a; }
+
     label { display:block; font-size:12px; opacity:.8; margin-bottom:6px; }
+
     input, textarea, button {
-      width:100%; box-sizing:border-box; background:#000; color:#fff;
-      border:1px solid #222; border-radius:10px; padding:10px; font-size:14px;
+      width:100%;
+      box-sizing:border-box;
+      background:#000;
+      color:#fff;
+      border:1px solid #222;
+      border-radius:10px;
+      padding:10px;
+      font-size:14px;
     }
+
     textarea { resize:vertical; }
+
     .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
     .btnrow { display:flex; gap:10px; flex-wrap:wrap; }
+
     button { cursor:pointer; width:auto; padding:10px 14px; }
     button.primary { border-color:#444; }
     button.danger { border-color:#662222; }
+
     .muted { opacity:.7; font-size:12px; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
     .pill { display:inline-block; padding:4px 10px; border:1px solid #222; border-radius:999px; font-size:12px; }
     .ok { border-color:#2a4; }
     .warn { border-color:#a82; }
     .bad { border-color:#a22; }
+
     .divider { height:1px; background:#151515; margin:16px 0; }
+
     .linkRow { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .linkText { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .iconPreview { width:64px; height:64px; border-radius:14px; border:1px solid #222; display:none; }
+
     details { border:1px solid #222; border-radius:12px; padding:12px; background:#060606; }
     summary { cursor:pointer; opacity:.8; }
   </style>
@@ -52,100 +72,139 @@
 
 <main>
 
-<section class="card">
-  <div class="muted">
-    Repo: <span id="repoLabel" class="mono"></span><br/>
-    Target: <span class="mono">Fan App/content.json</span>
-  </div>
-
-  <div class="btnrow" style="margin-top:12px;">
-    <button id="btnLoad" class="primary">Load Current State</button>
-    <button id="btnPublish" class="primary" disabled>Publish</button>
-    <button id="btnResetToken" class="danger">Reset Key</button>
-  </div>
-
-  <div class="row" style="margin-top:16px;">
-    <div>
-      <label>Creator Key</label>
-      <input id="token" type="password" />
+  <!-- SYSTEM CONTROL -->
+  <section class="card">
+    <div class="muted">
+      Repo: <span id="repoLabel" class="mono"></span><br/>
+      Target: <span class="mono">Fan App/content.json</span>
     </div>
-    <div>
-      <label>content.json URL</label>
-      <input id="contentUrl" type="text" />
-    </div>
-  </div>
-</section>
 
-<section class="card">
-
-  <div class="row">
-    <div>
-      <label>Name</label>
-      <input id="name" type="text" />
-    </div>
-    <div>
-      <label>Bio</label>
-      <input id="bio" type="text" />
-    </div>
-  </div>
-
-  <div style="margin-top:16px;">
-    <label>Background Color</label>
-    <input id="backgroundColor" type="color" value="#000000" />
-  </div>
-
-  <div class="divider"></div>
-
-  <div>
-    <label>Links</label>
-    <div class="row">
-      <input id="linkLabelInput" type="text" placeholder="Link label" />
-      <input id="linkUrlInput" type="url" placeholder="https://..." />
-    </div>
     <div class="btnrow" style="margin-top:12px;">
-      <button id="addLinkBtn" class="primary" type="button">Add Link</button>
-      <button id="clearLinksBtn" class="danger" type="button">Clear Links</button>
+      <button id="btnLoad" class="primary">Load Current State</button>
+      <button id="btnPublish" class="primary" disabled>Publish</button>
+      <button id="btnResetToken" class="danger">Reset Key</button>
     </div>
-    <div id="linksList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
-    <textarea id="links" style="display:none;"></textarea>
-  </div>
 
-  <div class="divider"></div>
+    <div class="row" style="margin-top:16px;">
+      <div>
+        <label>Creator Key</label>
+        <input id="token" type="password" />
+      </div>
+      <div>
+        <label>content.json URL</label>
+        <input id="contentUrl" type="text" />
+      </div>
+    </div>
+  </section>
 
-  <!-- EMAIL CAPTURE -->
-  <div>
-    <label>Email Capture</label>
+  <!-- CREATOR CONTROLS -->
+  <section class="card">
+
     <div class="row">
       <div>
-        <input id="emailCaptureToggle" type="checkbox" />
-        <span class="muted">Enable Email Collection</span>
+        <label>Name</label>
+        <input id="name" type="text" />
       </div>
       <div>
-        <input id="emailEndpoint" type="text" placeholder="Webhook / Provider endpoint URL" />
+        <label>Bio</label>
+        <input id="bio" type="text" />
       </div>
     </div>
-  </div>
 
-  <div class="divider"></div>
-
-  <div>
-    <label>Preview</label>
-    <div id="previewCard" class="card" style="background:#000; border-color:#151515;">
-      <div id="pName" style="font-weight:700;">—</div>
-      <div id="pBio" class="muted" style="margin-top:6px;">—</div>
-      <div id="pLinks" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
+    <div style="margin-top:16px;">
+      <label>Background Color</label>
+      <input id="backgroundColor" type="color" value="#000000" />
     </div>
-  </div>
 
-</section>
+    <div class="divider"></div>
 
-<details>
-  <summary>System Details</summary>
-  <div style="margin-top:10px;">
-    <div id="lastSha" class="mono muted">sha: —</div>
-    <div id="status" class="mono muted" style="white-space:pre-wrap;">Ready.</div>
-  </div>
-</details>
+    <!-- LINKS -->
+    <div>
+      <label>Links</label>
+
+      <div class="row">
+        <div>
+          <input id="linkLabelInput" type="text" placeholder="Link label" />
+        </div>
+        <div>
+          <input id="linkUrlInput" type="url" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div class="btnrow" style="margin-top:12px;">
+        <button id="addLinkBtn" class="primary" type="button">Add Link</button>
+        <button id="clearLinksBtn" class="danger" type="button">Clear Links</button>
+      </div>
+
+      <div id="linksList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
+
+      <!-- Hidden engine layer -->
+      <textarea id="links" style="display:none;"></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- CONNECT BUTTON (Tier 0) -->
+    <div>
+      <label>Connect Button</label>
+      <div class="row">
+        <div>
+          <input id="contactEmail" type="text" placeholder="email address (ex: you@gmail.com)" />
+          <div class="muted" style="margin-top:6px;">
+            If empty → no Connect button appears in Fan App.
+          </div>
+        </div>
+        <div>
+          <input id="contactLabel" type="text" placeholder="button label (default: Connect)" />
+          <div class="muted" style="margin-top:6px;">
+            Optional. Controls the text shown on the button.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- APP ICON (RESTORED) -->
+    <div>
+      <label>App Icon</label>
+      <div class="row">
+        <div>
+          <input id="appIconFile" type="file" accept="image/png,image/jpeg,image/webp" />
+          <div class="muted" style="margin-top:6px;">Square image recommended (512×512).</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <img id="appIconPreview" class="iconPreview" alt="icon preview" />
+          <div>
+            <button id="btnUpdateIcon" class="primary" type="button">Update Icon</button>
+            <div id="appIconStatus" class="muted" style="margin-top:6px;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- PREVIEW -->
+    <div>
+      <label>Preview</label>
+      <div id="previewCard" class="card" style="background:#000; border-color:#151515;">
+        <div id="pName" style="font-weight:700;">—</div>
+        <div id="pBio" class="muted" style="margin-top:6px;">—</div>
+        <div id="pLinks" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SYSTEM DETAILS -->
+  <details>
+    <summary>System Details</summary>
+    <div style="margin-top:10px;">
+      <div id="lastSha" class="mono muted">sha: —</div>
+      <div id="status" class="mono muted" style="white-space:pre-wrap;">Ready.</div>
+    </div>
+  </details>
 
 </main>
 
