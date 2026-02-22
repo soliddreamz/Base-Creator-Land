@@ -21,6 +21,21 @@ header{
   justify-content:space-between;
   gap:12px;
 }
+
+/* UNIVERSAL LOGO (V1) */
+#logoWrap{
+  width:100%;
+  text-align:center;
+}
+#logo{
+  display:none;
+  margin:0 auto 12px auto;
+  max-width:80%;
+  max-height:200px;
+  height:auto;
+  object-fit:contain;
+}
+
 section{ padding:16px; }
 .badge{
   padding:6px 10px;
@@ -51,7 +66,8 @@ a.btn{
 <body>
 
 <header>
-  <div>
+  <div id="logoWrap">
+    <img id="logo" alt="Logo">
     <h2 id="name" style="margin:0 0 6px 0;">Creator Name</h2>
     <div class="badge" id="live">OFFLINE</div>
   </div>
@@ -117,6 +133,14 @@ function applyState(d){
     a.href = `mailto:${d.contactEmail.trim()}`;
     a.textContent = label;
     linksEl.appendChild(a);
+  }
+
+  // ===== V1 UNIVERSAL LOGO (SHOWS INSIDE APP) =====
+  // Always render the current icon-512.png and bust cache so changes appear immediately.
+  const logo = document.getElementById("logo");
+  if (logo) {
+    logo.src = "./icons/icon-512.png?v=" + Date.now();
+    logo.style.display = "block";
   }
 }
 
