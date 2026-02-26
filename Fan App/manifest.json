@@ -1,18 +1,18 @@
 {
-  "name": "DJ TEST 14",
-  "short_name": "DJ TEST 14",
-  "start_url": "./?v=7",
+  "name": "DJ TEST 15",
+  "short_name": "DJ TEST 15",
+  "start_url": "./?v=8",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "icons/icon-192-v7.png",
+      "src": "icons/icon-192-v8.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512-v7.png",
+      "src": "icons/icon-512-v8.png",
       "sizes": "512x512",
       "type": "image/png"
     }
