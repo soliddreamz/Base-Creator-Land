@@ -1,6 +1,6 @@
 {
-  "name": "DJ TEST 15",
-  "bio": "MO FIYA 4",
+  "name": "DJ TEST 16",
+  "bio": "MO FIYA 6",
   "links": [
     {
       "label": "Instagram",
@@ -11,10 +11,9 @@
       "url": "https://youtube.com/"
     }
   ],
-  "backgroundColor": "#669c35",
+  "backgroundColor": "#0433ff",
   "contactEmail": "soliddreamz@gmail.com",
   "contactLabel": "Connect",
-
   "mediaGateway": {
     "enabled": true,
     "collections": [
@@ -36,6 +35,14 @@
             "thumbnail": "",
             "url": "",
             "access": "paid"
+          },
+          {
+            "id": "item-1772493897452-705ab9c9a99418",
+            "title": "Base Test Clip",
+            "description": "Testing media gateway pipeline.",
+            "thumbnail": "https://via.placeholder.com/600x400",
+            "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "access": "public"
           }
         ]
       }
