@@ -335,7 +335,8 @@
        * Updates Fan App/index.html <title> + apple-mobile-web-app-title
        * Updates apple-touch-icon to match versioned icon
    - Safely bumps version for icon refresh
-   - No architecture changes
+   - NO UI changes
+   - CRITICAL FIX: Preserve unknown keys in content.json (e.g., mediaGateway) by merging instead of overwriting.
 */
 (() => {
 
@@ -468,6 +469,33 @@
     if (!draft.bio) delete draft.bio;
 
     return draft;
+  }
+
+  // CRITICAL: apply Tier-0 fields onto existing JSON while preserving everything else.
+  // This preserves mediaGateway + any future tier blocks.
+  function mergeTier0IntoExisting(existing, draft) {
+    const base = (existing && typeof existing === "object" && !Array.isArray(existing)) ? existing : {};
+
+    // name
+    if (Object.prototype.hasOwnProperty.call(draft, "name")) base.name = draft.name;
+    else delete base.name;
+
+    // bio
+    if (Object.prototype.hasOwnProperty.call(draft, "bio")) base.bio = draft.bio;
+    else delete base.bio;
+
+    // links + backgroundColor always written
+    base.links = Array.isArray(draft.links) ? draft.links : [];
+    base.backgroundColor = draft.backgroundColor || "#000000";
+
+    // contactEmail/contactLabel: set if provided, else remove
+    if (Object.prototype.hasOwnProperty.call(draft, "contactEmail")) base.contactEmail = draft.contactEmail;
+    else delete base.contactEmail;
+
+    if (Object.prototype.hasOwnProperty.call(draft, "contactLabel")) base.contactLabel = draft.contactLabel;
+    else delete base.contactLabel;
+
+    return base;
   }
 
   function refreshPreview() {
@@ -776,25 +804,41 @@
     try {
       const token = requireToken();
 
-      lastRemoteSha = await ghGetFileSha(token, TARGET_PATH);
+      // Get current file meta (sha + content) so we can MERGE and preserve unknown keys.
+      const meta = await ghGetFileMeta(token, TARGET_PATH);
+      lastRemoteSha = meta.sha;
       if (el.lastSha) el.lastSha.textContent = `sha: ${lastRemoteSha}`;
 
+      let existingObj = {};
+      try {
+        const existingText = fromBase64Utf8(meta.content || "");
+        const parsed = JSON.parse(existingText);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) existingObj = parsed;
+      } catch (parseErr) {
+        // If existing JSON is invalid, we still publish Tier 0 draft cleanly.
+        existingObj = {};
+        log(`Warning: existing content.json parse failed, publishing Tier 0 only. (${parseErr.message})`);
+      }
+
       const draft = buildDraft();
-      const jsonText = JSON.stringify(draft, null, 2);
+      const merged = mergeTier0IntoExisting(existingObj, draft);
+
+      const jsonText = JSON.stringify(merged, null, 2);
 
       const result = await ghPutFile(
         token,
         TARGET_PATH,
         lastRemoteSha,
         toBase64Utf8(jsonText),
-        "BASE V1: publish content.json"
+        "BASE V1: publish content.json (merge-safe)"
       );
 
       if (result?.content?.sha) {
         if (el.lastSha) el.lastSha.textContent = `sha: ${result.content.sha}`;
       }
 
-      const appName = safeAppNameFromDraft(draft);
+      // Identity sync should use merged (final truth), not draft.
+      const appName = safeAppNameFromDraft(merged);
 
       try {
         const mf = await ghGetFileMeta(token, MANIFEST_PATH);
@@ -831,7 +875,7 @@
       }
 
       setPill("ok", "STATUS: published");
-      log("Publish success.");
+      log("Publish success (merge-safe).");
 
     } catch (e) {
       setPill("bad", "STATUS: publish failed");
