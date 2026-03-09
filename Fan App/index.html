@@ -309,6 +309,9 @@ background:rgba(255,255,255,0.10);
 const CONTENT_URL="./content.json"
 const POLL_INTERVAL=15000
 
+/* PREVIEW MODE FLAG */
+let previewMode=false
+
 /* SAFE URL */
 
 function safeURL(url){
@@ -373,6 +376,10 @@ document.getElementById("bio").textContent=d.bio||""
 
 document.documentElement.style.setProperty('--pillColor',d.pillColor||"#000")
 
+if(d.backgroundColor){
+document.body.style.background=d.backgroundColor
+}
+
 const connectMount=document.getElementById("connectMount")
 connectMount.innerHTML=""
 
@@ -387,10 +394,6 @@ a.textContent=label
 
 connectMount.appendChild(a)
 
-}
-
-if(d.backgroundColor){
-document.body.style.background=d.backgroundColor
 }
 
 renderMedia(d)
@@ -531,6 +534,8 @@ container.appendChild(card)
 
 async function fetchState(){
 
+if(previewMode) return
+
 const url=new URL(CONTENT_URL,location.href)
 url.searchParams.set("ts",Date.now())
 
@@ -543,12 +548,11 @@ let polling=true
 
 async function tick(){
 
-if(!polling) return
+if(!polling || previewMode) return
 
 try{
 
 const state=await fetchState()
-
 applyState(state)
 
 }catch(e){}
@@ -560,6 +564,23 @@ applyState(state)
 document.addEventListener("visibilitychange",()=>{
 
 polling=!document.hidden
+
+})
+
+/* PREVIEW LISTENER */
+
+window.addEventListener("message",(event)=>{
+
+const msg=event.data
+
+if(!msg) return
+
+if(msg.type==="BASE_PREVIEW"){
+
+previewMode=true
+applyState(msg.payload)
+
+}
 
 })
 
