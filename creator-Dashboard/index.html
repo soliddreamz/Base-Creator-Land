@@ -477,6 +477,8 @@ let linkState=[]
 let mediaItems=[]
 let mediaHydrated=false
 let mediaTouched=false
+let isPublishing=false
+const defaultPublishLabel="Publish"
 
 function log(t){
 const s=new Date().toLocaleString()
@@ -515,8 +517,14 @@ return new TextDecoder().decode(bytes)
 
 function enablePublishIfReady(){
 const hasToken=(el.token.value||"").trim().length>0
-el.btnPublish.disabled=!(hasLoadedState && hasToken)
+el.btnPublish.disabled=!!isPublishing || !(hasLoadedState && hasToken)
 refreshPreview()
+}
+
+function setPublishBusy(busy){
+isPublishing=busy===true
+el.btnPublish.textContent=isPublishing ? "Publishing..." : defaultPublishLabel
+enablePublishIfReady()
 }
 
 async function fetchState(){
@@ -825,11 +833,25 @@ log(e.message)
 
 el.btnPublish.onclick=async()=>{
 
-try{
+if(isPublishing){
+log("Publish blocked: publish already in progress.")
+return
+}
 
 const token=(el.token.value||"").trim()
 
-if(!token)throw new Error("Missing creator key.")
+if(!token){
+setPill("bad","STATUS: token required")
+log("Publish blocked: missing creator key.")
+enablePublishIfReady()
+return
+}
+
+try{
+
+setPublishBusy(true)
+setPill("warn","STATUS: publishing…")
+log("Publish started.")
 
 const meta=await ghGetFileMeta(token,TARGET_PATH)
 
@@ -874,6 +896,10 @@ log("Publish success.")
 setPill("bad","STATUS: publish failed")
 log(e.message)
 
+}finally{
+
+setPublishBusy(false)
+
 }
 
 }
@@ -894,7 +920,7 @@ el.btnResetToken.addEventListener("click",()=>{
 localStorage.removeItem(LS_TOKEN)
 el.token.value=""
 hasLoadedState=false
-el.btnPublish.disabled=true
+setPublishBusy(false)
 el.lastSha.textContent="sha: —"
 setPill("warn","STATUS: ready")
 log("Creator key reset.")
@@ -935,7 +961,7 @@ localStorage.removeItem(LS_TOKEN)
 
 renderLinks()
 renderMediaList()
-enablePublishIfReady()
+setPublishBusy(false)
 refreshPreview()
 
 }
