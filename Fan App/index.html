@@ -481,7 +481,10 @@ label.textContent=item.label||"Link"
 
 const hint=document.createElement("div")
 hint.className="hint"
-hint.textContent=url.replace(/^https?:\/\//,"")
+
+/* FIX — SHOW DOMAIN ONLY */
+const domain=new URL(url).hostname.replace(/^www\./,"")
+hint.textContent=domain+"/"
 
 left.appendChild(label)
 left.appendChild(hint)
