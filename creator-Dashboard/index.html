@@ -493,20 +493,6 @@ src="../Fan App/index.html?basePreviewShell=1">
 
 </div>
 
-<div style="margin-top:16px">
-
-<div id="miniPreview" class="miniPreview">
-
-<div id="pName" style="font-size:20px;font-weight:700;margin-bottom:8px">—</div>
-
-<div id="pBio" style="opacity:.85;margin-bottom:12px">—</div>
-
-<div id="pLinks"></div>
-
-</div>
-
-</div>
-
 </div>
 
 </div>
@@ -585,11 +571,7 @@ status:$("status"),
 repoLabel:$("repoLabel"),
 statePill:$("statePill"),
 lastSha:$("lastSha"),
-previewFrame:$("fanPreviewFrame"),
-previewName:$("pName"),
-previewBio:$("pBio"),
-previewLinks:$("pLinks"),
-miniPreview:$("miniPreview")
+previewFrame:$("fanPreviewFrame")
 }
 
 let hasLoadedState=false
@@ -703,7 +685,6 @@ return res.json()
 function renderLinks(){
 
 el.linksList.innerHTML=""
-el.previewLinks.innerHTML=""
 
 linkState.forEach((l,i)=>{
 
@@ -727,10 +708,6 @@ row.appendChild(text)
 row.appendChild(remove)
 
 el.linksList.appendChild(row)
-
-const p=document.createElement("div")
-p.textContent=l.label
-el.previewLinks.appendChild(p)
 
 })
 
@@ -841,13 +818,6 @@ collections:[{title,items}]
 }
 
 function refreshPreview(){
-
-el.previewName.textContent=el.name.value||"—"
-el.previewBio.textContent=el.bio.value||"—"
-
-if(el.miniPreview){
-el.miniPreview.style.background=el.backgroundColor.value||"#040404"
-}
 
 try{
 const payload={
