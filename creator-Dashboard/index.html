@@ -479,6 +479,8 @@ let mediaHydrated=false
 let mediaTouched=false
 let isPublishing=false
 let isDirty=false
+let loadedSha=null
+let shaConflict=false
 const defaultPublishLabel="Publish"
 
 function log(t){
@@ -518,7 +520,8 @@ return new TextDecoder().decode(bytes)
 
 function enablePublishIfReady(){
 const hasToken=(el.token.value||"").trim().length>0
-el.btnPublish.disabled=!!isPublishing || !(hasLoadedState && hasToken && isDirty)
+const hasSha=String(loadedSha||"").trim().length>0
+el.btnPublish.disabled=!!isPublishing || !(hasLoadedState && hasToken && isDirty && hasSha && !shaConflict)
 refreshPreview()
 }
 
@@ -535,6 +538,36 @@ enablePublishIfReady()
 
 function clearDirty(){
 isDirty=false
+enablePublishIfReady()
+}
+
+function clearShaState(){
+loadedSha=null
+shaConflict=false
+el.lastSha.textContent="sha: —"
+enablePublishIfReady()
+}
+
+async function syncLoadedSha(){
+const token=(el.token.value||"").trim()
+
+if(!token){
+clearShaState()
+return
+}
+
+try{
+const meta=await ghGetFileMeta(token,TARGET_PATH)
+loadedSha=meta?.sha || null
+shaConflict=false
+el.lastSha.textContent=loadedSha ? `sha: ${loadedSha}` : "sha: —"
+}catch(e){
+loadedSha=null
+shaConflict=false
+el.lastSha.textContent="sha: —"
+log(`SHA sync failed: ${e.message}`)
+}
+
 enablePublishIfReady()
 }
 
@@ -828,6 +861,7 @@ renderLinks()
 
 hasLoadedState=true
 clearDirty()
+await syncLoadedSha()
 
 setPill("warn","STATUS: loaded")
 log("Loaded current state.")
@@ -863,6 +897,20 @@ enablePublishIfReady()
 return
 }
 
+if(!loadedSha){
+setPill("bad","STATUS: sha required")
+log("Publish blocked: missing loaded SHA. Reload current state.")
+enablePublishIfReady()
+return
+}
+
+if(shaConflict){
+setPill("bad","STATUS: remote changed")
+log("Publish blocked: remote content changed. Reload current state.")
+enablePublishIfReady()
+return
+}
+
 try{
 
 setPublishBusy(true)
@@ -870,6 +918,19 @@ setPill("warn","STATUS: publishing…")
 log("Publish started.")
 
 const meta=await ghGetFileMeta(token,TARGET_PATH)
+
+if(!meta?.sha){
+throw new Error("GitHub SHA missing.")
+}
+
+if(meta.sha !== loadedSha){
+shaConflict=true
+el.lastSha.textContent=`sha: ${meta.sha}`
+setPill("bad","STATUS: remote changed")
+log("Publish blocked: remote content changed. Reload current state.")
+enablePublishIfReady()
+return
+}
 
 let existing={}
 try{
@@ -901,6 +962,8 @@ toBase64Utf8(JSON.stringify(merged,null,2)),
 )
 
 if(result?.content?.sha){
+loadedSha=result.content.sha
+shaConflict=false
 el.lastSha.textContent=`sha: ${result.content.sha}`
 }
 
@@ -921,7 +984,7 @@ setPublishBusy(false)
 
 }
 
-el.token.addEventListener("input",()=>{
+el.token.addEventListener("input",async()=>{
 const t=(el.token.value||"").trim()
 
 if(t){
@@ -930,7 +993,11 @@ localStorage.setItem(LS_TOKEN,t)
 localStorage.removeItem(LS_TOKEN)
 }
 
+if(hasLoadedState){
+await syncLoadedSha()
+}else{
 enablePublishIfReady()
+}
 })
 
 el.btnResetToken.addEventListener("click",()=>{
@@ -938,8 +1005,8 @@ localStorage.removeItem(LS_TOKEN)
 el.token.value=""
 hasLoadedState=false
 clearDirty()
+clearShaState()
 setPublishBusy(false)
-el.lastSha.textContent="sha: —"
 setPill("warn","STATUS: ready")
 log("Creator key reset.")
 refreshPreview()
@@ -981,6 +1048,7 @@ renderLinks()
 renderMediaList()
 setPublishBusy(false)
 clearDirty()
+clearShaState()
 refreshPreview()
 
 }
