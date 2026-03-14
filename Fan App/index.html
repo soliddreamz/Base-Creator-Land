@@ -30,11 +30,15 @@ color:var(--text);
 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 
+/* LAYOUT */
+
 .wrap{
 max-width:720px;
 margin:0 auto;
 padding:20px 16px 100px;
 }
+
+/* HEADER */
 
 .top{
 display:flex;
@@ -63,6 +67,8 @@ font-weight:800;
 font-size:17px;
 }
 
+/* HERO */
+
 .hero{
 margin:8px 0 18px;
 border-radius:18px;
@@ -76,12 +82,30 @@ width:100%;
 display:block;
 }
 
-.card{
+/* CARDS */
+
+.card,
+.media-card{
 border:1px solid var(--stroke);
 background:var(--card);
 border-radius:18px;
 padding:16px;
 margin:16px 0;
+display:flex;
+flex-direction:column;
+animation:fadeIn .35s ease;
+transition:transform .18s ease, box-shadow .18s ease;
+}
+
+.card:hover,
+.media-card:hover{
+transform:translateY(-2px);
+box-shadow:0 8px 18px rgba(0,0,0,.28);
+}
+
+@keyframes fadeIn{
+from{opacity:0; transform:translateY(8px)}
+to{opacity:1; transform:translateY(0)}
 }
 
 .h1{
@@ -96,7 +120,9 @@ color:var(--muted);
 font-size:13px;
 }
 
-.hidden{display:none!important}
+.hidden{
+display:none!important
+}
 
 /* LINKS */
 
@@ -112,6 +138,11 @@ padding:14px;
 margin:14px 0;
 text-decoration:none;
 color:inherit;
+transition:background .15s ease;
+}
+
+.row:hover{
+background:rgba(255,255,255,0.06);
 }
 
 .left{
@@ -130,14 +161,22 @@ color:var(--muted);
 font-size:12px;
 }
 
-.pill{
-flex:0 0 auto;
-padding:8px 16px;
+/* BUTTON SYSTEM */
+
+.pill,
+.media-btn{
+height:34px;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+padding:0 16px;
 border-radius:999px;
 background:var(--pillColor);
 color:#fff;
-font-size:12px;
+font-size:13px;
 font-weight:600;
+text-decoration:none;
+transition:transform .07s ease, opacity .12s ease;
 }
 
 .btn{
@@ -145,7 +184,7 @@ display:inline-flex;
 align-items:center;
 justify-content:center;
 width:100%;
-padding:12px 14px;
+height:42px;
 border-radius:999px;
 border:none;
 background:var(--pillColor);
@@ -154,6 +193,14 @@ font-weight:700;
 text-decoration:none;
 cursor:pointer;
 margin-top:12px;
+transition:transform .07s ease, opacity .12s ease;
+}
+
+.btn:active,
+.pill:active,
+.media-btn:active{
+transform:scale(.95);
+opacity:.9;
 }
 
 /* MEDIA */
@@ -162,16 +209,6 @@ margin-top:12px;
 font-weight:700;
 font-size:16px;
 margin:20px 4px 12px;
-}
-
-/* FIXED: unified card system */
-
-.media-card{
-border:1px solid var(--stroke);
-background:var(--card);
-border-radius:18px;
-padding:16px;
-margin:18px 0;
 }
 
 .media-thumb{
@@ -204,21 +241,18 @@ margin-bottom:12px;
 }
 
 .media-btn{
-display:inline-block;
-padding:8px 16px;
-border-radius:999px;
-background:var(--pillColor);
-color:#fff;
-font-size:13px;
-text-decoration:none;
-font-weight:600;
+margin-left:auto;
 }
+
+/* LOCKED STATE POLISH */
 
 .media-locked{
-opacity:0.6;
+opacity:.6;
+background:rgba(255,255,255,.08);
+color:rgba(255,255,255,.7);
 }
 
-/* TABS */
+/* TAB BAR */
 
 .tabs{
 position:fixed;
@@ -248,11 +282,25 @@ border-radius:14px;
 font-size:13px;
 text-align:center;
 cursor:pointer;
+transition:background .15s ease,color .15s ease;
 }
 
 .tab.active{
 color:var(--text);
-background:rgba(255,255,255,0.10);
+background:rgba(255,255,255,0.12);
+box-shadow:0 0 0 1px rgba(255,255,255,0.08) inset;
+}
+
+/* VIEW TRANSITION */
+
+section{
+transition:opacity .18s ease, transform .18s ease;
+}
+
+section.hidden{
+opacity:0;
+transform:translateY(8px);
+pointer-events:none;
 }
 
 </style>
@@ -308,8 +356,6 @@ background:rgba(255,255,255,0.10);
 
 <script>
 
-/* ORIGINAL JS UNCHANGED */
-
 const CONTENT_URL="./content.json"
 const POLL_INTERVAL=15000
 
@@ -362,8 +408,15 @@ t.onclick=()=>setView(t.dataset.id)
 })
 
 function setView(id){
-Object.keys(views).forEach(k=>views[k].classList.toggle("hidden",k!==id))
-document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.id===id))
+
+Object.keys(views).forEach(k=>{
+views[k].classList.toggle("hidden",k!==id)
+})
+
+document.querySelectorAll(".tab").forEach(t=>{
+t.classList.toggle("active",t.dataset.id===id)
+})
+
 }
 
 function applyState(d){
@@ -557,9 +610,7 @@ applyState(state)
 }
 
 document.addEventListener("visibilitychange",()=>{
-
 polling=!document.hidden
-
 })
 
 window.addEventListener("message",(event)=>{
@@ -578,7 +629,6 @@ applyState(msg.payload)
 })
 
 tick()
-
 setInterval(tick,POLL_INTERVAL)
 
 </script>
