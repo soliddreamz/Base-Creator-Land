@@ -197,13 +197,32 @@ font-size:12px;
 opacity:.75;
 }
 
+.previewShell{
+display:flex;
+justify-content:center;
+margin-top:18px;
+}
+
+.previewDevice{
+width:100%;
+max-width:420px;
+background:#000;
+border-radius:36px;
+padding:14px;
+border:1px solid #222;
+box-shadow:
+0 0 0 1px rgba(255,255,255,.04) inset,
+0 40px 80px rgba(0,0,0,.8);
+}
+
 .previewFrame{
 display:block;
 width:100%;
 height:720px;
+max-height:80vh;
 border:0;
 background:#000;
-border-radius:14px;
+border-radius:26px;
 }
 
 .miniPreview{
@@ -260,12 +279,23 @@ white-space:nowrap;
 flex-direction:column;
 align-items:stretch;
 }
+
 .pill{
 min-width:0;
 }
+
 .dashboardTab{
 flex:1 1 calc(50% - 10px);
 text-align:center;
+}
+
+.previewDevice{
+max-width:360px;
+}
+
+.previewFrame{
+height:520px;
+max-height:70vh;
 }
 }
 </style>
@@ -446,13 +476,22 @@ text-align:center;
 
 <div class="card">
 
-<h3>Fan App Preview</h3>
+<h3 style="margin-bottom:6px;">Fan App Preview</h3>
+<div class="tiny">This is exactly how fans experience your app.</div>
+
+<div class="previewShell">
+
+<div class="previewDevice">
 
 <iframe
 id="fanPreviewFrame"
 class="previewFrame"
 src="../Fan App/index.html?basePreviewShell=1">
 </iframe>
+
+</div>
+
+</div>
 
 <div style="margin-top:16px">
 
