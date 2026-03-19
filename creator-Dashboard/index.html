@@ -896,6 +896,51 @@ reader.readAsDataURL(file)
 })
 }
 
+async function getLatestIconVersion(token){
+const folderPath="Fan App/icons"
+const api=`https://api.github.com/repos/${OWNER}/${REPO}/contents/${ghEncodePath(folderPath)}?ref=${BRANCH}`
+const res=await fetch(api,{headers:ghHeaders(token)})
+
+if(!res.ok) throw new Error(`GitHub icons folder read failed (${res.status})`)
+
+const files=await res.json()
+
+let latest192=null
+let latest512=null
+
+files.forEach(file=>{
+const name=String(file?.name || "")
+
+const match192=name.match(/^icon-192-v(\d+)\.png$/)
+const match512=name.match(/^icon-512-v(\d+)\.png$/)
+
+if(match192){
+const v=parseInt(match192[1],10)
+if(!latest192 || v>latest192.v){
+latest192={v,name}
+}
+}
+
+if(match512){
+const v=parseInt(match512[1],10)
+if(!latest512 || v>latest512.v){
+latest512={v,name}
+}
+}
+})
+
+if(!latest192 || !latest512){
+throw new Error("Versioned icons not found in Fan App/icons")
+}
+
+return{
+icon192Path:`Fan App/icons/${latest192.name}`,
+icon512Path:`Fan App/icons/${latest512.name}`,
+icon192Name:latest192.name,
+icon512Name:latest512.name
+}
+}
+
 async function updateAppIcon(){
 
 try{
@@ -921,28 +966,27 @@ log("Icon upload started.")
 
 const base64=await fileToBase64(file)
 
-const icon192Path="Fan App/icon-192.png"
-const icon512Path="Fan App/icon-512.png"
-const manifestPath="Fan App/manifest.json"
+const latest=await getLatestIconVersion(token)
 
-const icon192Meta=await ghGetFileMeta(token,icon192Path).catch(()=>null)
+const icon192Meta=await ghGetFileMeta(token,latest.icon192Path).catch(()=>null)
 await ghPutFile(
 token,
-icon192Path,
+latest.icon192Path,
 icon192Meta?.sha || undefined,
 base64,
-"BASE app icon update (192)"
+"BASE app icon update (192 versioned)"
 )
 
-const icon512Meta=await ghGetFileMeta(token,icon512Path).catch(()=>null)
+const icon512Meta=await ghGetFileMeta(token,latest.icon512Path).catch(()=>null)
 await ghPutFile(
 token,
-icon512Path,
+latest.icon512Path,
 icon512Meta?.sha || undefined,
 base64,
-"BASE app icon update (512)"
+"BASE app icon update (512 versioned)"
 )
 
+const manifestPath="Fan App/manifest.json"
 const manifestMeta=await ghGetFileMeta(token,manifestPath)
 
 let manifest={}
@@ -954,12 +998,12 @@ manifest={}
 
 manifest.icons=[
 {
-src:"icon-192.png",
+src:`icons/${latest.icon192Name}`,
 sizes:"192x192",
 type:"image/png"
 },
 {
-src:"icon-512.png",
+src:`icons/${latest.icon512Name}`,
 sizes:"512x512",
 type:"image/png"
 }
