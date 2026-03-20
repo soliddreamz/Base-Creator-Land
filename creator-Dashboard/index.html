@@ -1267,6 +1267,10 @@ clearDirty()
 setPill("ok","STATUS: published")
 log("Publish success.")
 
+try{
+el.previewFrame.src=`../Fan App/index.html?basePreviewShell=1&v=${Date.now()}`
+}catch(e){}
+
 }catch(e){
 
 setPill("bad","STATUS: publish failed")
