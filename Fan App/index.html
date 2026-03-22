@@ -110,12 +110,37 @@ box-shadow:0 0 0 1px rgba(255,255,255,0.08) inset;
 }
 section{transition:opacity .18s ease, transform .18s ease;}
 section.hidden{opacity:0;transform:translateY(8px);pointer-events:none;}
+
+/* =========================
+   TV MODE (ADDITIVE ONLY)
+========================= */
+@media (min-width: 900px) {
+
+  body { font-size: 20px; }
+
+  .btn,.pill,.media-btn,.tab {
+    font-size: 22px !important;
+    padding: 18px 28px !important;
+    height:auto !important;
+  }
+
+  .tabrow { gap:20px; }
+
+  .hero { transform:scale(1.05); }
+
+  [tabindex="0"]:focus {
+    outline:4px solid #fff;
+    transform:scale(1.08);
+  }
+
+  [tabindex="0"] {
+    transition:all .15s ease;
+  }
+}
 </style>
 
 <meta name="apple-mobile-web-app-title" content="DJ TEST 63">
 <meta name="application-name" content="DJ TEST 63">
-
-<!-- keep favicon simple; cache will refresh on hard reload -->
 
 </head>
 
@@ -156,9 +181,9 @@ section.hidden{opacity:0;transform:translateY(8px);pointer-events:none;}
 
 <nav class="tabs">
   <div class="tabrow">
-    <div class="tab active" data-id="home">Home</div>
-    <div class="tab" data-id="media">Media</div>
-    <div class="tab" data-id="links">Links</div>
+    <div class="tab active" data-id="home" tabindex="0">Home</div>
+    <div class="tab" data-id="media" tabindex="0">Media</div>
+    <div class="tab" data-id="links" tabindex="0">Links</div>
   </div>
 </nav>
 
@@ -229,6 +254,7 @@ function applyState(d){
     a.className="btn"
     a.href=`mailto:${d.contactEmail}`
     a.textContent=label
+    a.setAttribute("tabindex","0")
     connectMount.appendChild(a)
   }
 
@@ -250,6 +276,7 @@ function renderLinks(d){
     a.href=url
     a.target="_blank"
     a.rel="noopener"
+    a.setAttribute("tabindex","0")
 
     const left=document.createElement("div")
     left.className="left"
@@ -293,6 +320,7 @@ function renderMedia(d){
     collection.items.forEach(item=>{
       const card=document.createElement("div")
       card.className="media-card"
+      card.setAttribute("tabindex","0")
 
       if(item.thumbnail){
         const thumb=document.createElement("div")
@@ -324,11 +352,13 @@ function renderMedia(d){
         btn.target="_blank"
         btn.rel="noopener"
         btn.textContent="Open"
+        btn.setAttribute("tabindex","0")
         card.appendChild(btn)
       }else{
         const locked=document.createElement("div")
         locked.className="media-btn media-locked"
         locked.textContent="Locked"
+        locked.setAttribute("tabindex","0")
         card.appendChild(locked)
       }
 
@@ -336,6 +366,35 @@ function renderMedia(d){
     })
   })
 }
+
+/* =========================
+   TV MODE NAVIGATION
+========================= */
+(function(){
+  const getItems=()=>Array.from(document.querySelectorAll('[tabindex="0"]'))
+
+  window.addEventListener('load',()=>{
+    const items=getItems()
+    if(items.length) items[0].focus()
+  })
+
+  document.addEventListener('keydown',(e)=>{
+    const items=getItems()
+    const current=document.activeElement
+    const index=items.indexOf(current)
+    if(index===-1)return
+
+    if(e.key==="ArrowRight"||e.key==="ArrowDown"){
+      e.preventDefault()
+      items[(index+1)%items.length].focus()
+    }
+
+    if(e.key==="ArrowLeft"||e.key==="ArrowUp"){
+      e.preventDefault()
+      items[(index-1+items.length)%items.length].focus()
+    }
+  })
+})()
 
 async function fetchState(){
   if(previewMode) return
