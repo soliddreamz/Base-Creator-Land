@@ -13,6 +13,10 @@
     {
       "label": "TIKTOK",
       "url": "https://www.tiktok.com/@djmofiya?_r=1&_t=ZP-94fqH0N1Mfn"
+    },
+    {
+      "label": "Test links",
+      "url": "https://example.invalid/media/sample.mp4"
     }
   ],
   "backgroundColor": "#7bff58",
