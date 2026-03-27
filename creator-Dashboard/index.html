@@ -374,10 +374,6 @@ height:520px;
 <div style="margin-top:18px;border-top:1px solid #222;padding-top:14px;">
 <label>App Icon</label>
 <input id="appIconInput" type="file" accept="image/png,image/jpeg">
-<div class="btnRow">
-<button id="btnUpdateIcon">Update Icon</button>
-</div>
-<div class="tiny">Uploads icon → GitHub → updates PWA home screen icon</div>
 </div>
 
 </div>
@@ -563,7 +559,6 @@ bio:$("bio"),
 backgroundColor:$("backgroundColor"),
 pillColor:$("pillColor"),
 appIconInput:$("appIconInput"),
-btnUpdateIcon:$("btnUpdateIcon"),
 linkLabelInput:$("linkLabelInput"),
 linkUrlInput:$("linkUrlInput"),
 addLinkBtn:$("addLinkBtn"),
@@ -1459,10 +1454,6 @@ log("Creator key reset.")
 refreshPreview()
 })
 
-el.btnUpdateIcon.addEventListener("click",()=>{
-log("Icon update disabled. Use Publish.")
-})
-
 el.name.addEventListener("input",markDirty)
 el.bio.addEventListener("input",markDirty)
 el.backgroundColor.addEventListener("input",markDirty)
@@ -1500,7 +1491,6 @@ renderMediaList()
 setPublishBusy(false)
 clearDirty()
 clearShaState()
-el.btnUpdateIcon.disabled=true
 refreshPreview()
 
 }
