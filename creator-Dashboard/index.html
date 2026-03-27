@@ -1369,18 +1369,18 @@ fanIndexHtml=fanIndexHtml.replace(
 )
 
 fanIndexHtml=fanIndexHtml.replace(
-/<link rel="apple-touch-icon" href="icons\/icon-512-v\d+\.png(?:\?v=\d+)?">/g,
-`<link rel="apple-touch-icon" href="icons/${icon512Name}?v=${cacheVersion}">`
+/<link rel="apple-touch-icon"[^>]*>/g,
+`<link rel="apple-touch-icon" sizes="512x512" href="icons/${icon512Name}?v=${cacheVersion}">`
 )
 
 fanIndexHtml=fanIndexHtml.replace(
-/<link rel="shortcut icon" href="icons\/icon-192-v\d+\.png(?:\?v=\d+)?">/g,
-`<link rel="shortcut icon" href="icons/${icon192Name}?v=${cacheVersion}">`
+/<link rel="shortcut icon"[^>]*>/g,
+`<link rel="shortcut icon" type="image/png" href="icons/${icon192Name}?v=${cacheVersion}">`
 )
 
 fanIndexHtml=fanIndexHtml.replace(
-/<link rel="icon" href="icons\/icon-192-v\d+\.png(?:\?v=\d+)?">/g,
-`<link rel="icon" href="icons/${icon192Name}?v=${cacheVersion}">`
+/<link rel="icon"[^>]*>/g,
+`<link rel="icon" type="image/png" sizes="192x192" href="icons/${icon192Name}?v=${cacheVersion}">`
 )
 
 fanIndexHtml=fanIndexHtml.replace(
