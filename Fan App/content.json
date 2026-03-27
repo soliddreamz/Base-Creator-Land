@@ -1,6 +1,6 @@
 {
-  "name": "Base URL TEST FIX 3",
-  "bio": "Base URL 2 DJ More Fire | \"Text & Decks\" | Creator-owned app > platform profile | symbols test: ! @ # $ % ^ & * ( ) _ + = [ ] { } ; : ' \" , < > / ? \\ |",
+  "name": "Base URL TEST FIX 4",
+  "bio": "Base URL 3 DJ More Fire | \"Text & Decks\" | Creator-owned app > platform profile | symbols test: ! @ # $ % ^ & * ( ) _ + = [ ] { } ; : ' \" , < > / ? \\ |",
   "links": [
     {
       "label": "Instagram",
@@ -19,7 +19,7 @@
       "url": "https://example.invalid/media/sample.mp4"
     }
   ],
-  "backgroundColor": "#669d34",
+  "backgroundColor": "#e22400",
   "contactEmail": "soliddreamz@gmail.com",
   "contactLabel": "Connect",
   "mediaGateway": {
@@ -64,5 +64,5 @@
       }
     ]
   },
-  "pillColor": "#0061fe"
+  "pillColor": "#fefb41"
 }
