@@ -1,5 +1,5 @@
 {
-  "name": "Base URL TEST FIX 5",
+  "name": "Base URL TEST FIX 6",
   "bio": "Base URL 4 DJ More Fire | \"Text & Decks\" | Creator-owned app > platform profile | symbols test: ! @ # $ % ^ & * ( ) _ + = [ ] { } ; : ' \" , < > / ? \\ |",
   "links": [
     {
@@ -19,7 +19,7 @@
       "url": "https://example.invalid/media/sample.mp4"
     }
   ],
-  "backgroundColor": "#d9ec37",
+  "backgroundColor": "#b18cfe",
   "contactEmail": "soliddreamz@gmail.com",
   "contactLabel": "Connect",
   "mediaGateway": {
@@ -64,5 +64,5 @@
       }
     ]
   },
-  "pillColor": "#0061fe"
+  "pillColor": "#f2f7b7"
 }
