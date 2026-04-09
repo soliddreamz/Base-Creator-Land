@@ -538,8 +538,8 @@ src="../Fan App/index.html?basePreviewShell=1">
 
 <script>
 
-const OWNER="soliddreamz"
-const REPO="Base-Creator-Land"
+const OWNER = localStorage.getItem("base_owner") || "base-creator-system"
+const REPO = localStorage.getItem("base_repo") || "Base-Creator-Land"
 const BRANCH="main"
 
 const TARGET_PATH="Fan App/content.json"
