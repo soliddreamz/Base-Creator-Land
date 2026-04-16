@@ -388,6 +388,38 @@ height:520px;
 <input id="appIconInput" type="file" accept="image/png,image/jpeg">
 </div>
 
+<div style="margin-top:18px;border-top:1px solid #222;padding-top:14px;">
+
+<label style="margin-bottom:10px;display:block;">Live Control</label>
+
+<div class="toggleRow">
+<div class="tiny">Control live availability and stream destination.</div>
+<label style="display:flex;align-items:center;gap:10px;margin:0;">
+<span class="tiny">Enabled</span>
+<input id="liveEnabled" type="checkbox" style="width:auto;height:auto;">
+</label>
+</div>
+
+<div class="row" style="margin-top:12px;">
+<div class="col">
+<label>Status</label>
+<select id="liveStatus">
+<option value="offline">offline</option>
+<option value="live">live</option>
+</select>
+</div>
+</div>
+
+<div class="row" style="margin-top:12px;">
+<div class="col">
+<label>Live Watch URL</label>
+<input id="liveWatchUrl" type="text" placeholder="https://...">
+<div class="tiny">Paste your Cloudflare or other live host URL.</div>
+</div>
+</div>
+
+</div>
+
 </div>
 
 </div>
@@ -573,6 +605,9 @@ pillColor:$("pillColor"),
 appIconInput:$("appIconInput"),
 contactEmail:$("contactEmail"),
 contactLabel:$("contactLabel"),
+liveEnabled:$("liveEnabled"),
+liveStatus:$("liveStatus"),
+liveWatchUrl:$("liveWatchUrl"),
 linkLabelInput:$("linkLabelInput"),
 linkUrlInput:$("linkUrlInput"),
 addLinkBtn:$("addLinkBtn"),
@@ -857,7 +892,12 @@ links:linkState,
 backgroundColor:el.backgroundColor.value,
 pillColor:el.pillColor.value,
 contactEmail:el.contactEmail.value,
-contactLabel:el.contactLabel.value
+contactLabel:el.contactLabel.value,
+live:{
+enabled:el.liveEnabled.checked===true,
+status:el.liveStatus.value || "offline",
+watch_url:el.liveWatchUrl.value || ""
+}
 }
 
 const mg=buildMediaGateway()
@@ -1170,6 +1210,9 @@ el.name.value=state.name||""
 el.bio.value=state.bio||""
 el.contactEmail.value=state.contactEmail||""
 el.contactLabel.value=state.contactLabel||""
+el.liveEnabled.checked=state.live?.enabled===true
+el.liveStatus.value=(state.live?.status==="live") ? "live" : "offline"
+el.liveWatchUrl.value=state.live?.watch_url||""
 el.backgroundColor.value=state.backgroundColor||"#000000"
 el.pillColor.value=state.pillColor||"#caa300"
 linkState=Array.isArray(state.links)?state.links:[]
@@ -1343,6 +1386,11 @@ name:el.name.value.trim(),
 bio:el.bio.value.trim(),
 contactEmail:el.contactEmail.value.trim(),
 contactLabel:el.contactLabel.value.trim(),
+live:{
+enabled:el.liveEnabled.checked===true,
+status:el.liveStatus.value==="live" ? "live" : "offline",
+watch_url:el.liveWatchUrl.value.trim()
+},
 links:linkState,
 backgroundColor:el.backgroundColor.value,
 pillColor:el.pillColor.value
@@ -1478,6 +1526,9 @@ el.name.addEventListener("input",markDirty)
 el.bio.addEventListener("input",markDirty)
 el.contactEmail.addEventListener("input",markDirty)
 el.contactLabel.addEventListener("input",markDirty)
+el.liveEnabled.addEventListener("change",markDirty)
+el.liveStatus.addEventListener("change",markDirty)
+el.liveWatchUrl.addEventListener("input",markDirty)
 el.backgroundColor.addEventListener("input",markDirty)
 el.pillColor.addEventListener("input",markDirty)
 
