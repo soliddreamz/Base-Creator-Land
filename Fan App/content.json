@@ -14,5 +14,10 @@
       }
     ]
   },
-  "pillColor": "#e22400"
+  "pillColor": "#e22400",
+
+  "live": {
+    "enabled": true,
+    "status": "live"
+  }
 }
