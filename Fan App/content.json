@@ -2,7 +2,7 @@
   "name": "DJ MOFIYA",
   "bio": "",
   "links": [],
-  "backgroundColor": "#e32400",
+  "backgroundColor": "#d95000",
   "contactEmail": "bookdjmofiya@gmail.com",
   "contactLabel": "Connect",
   "mediaGateway": {
@@ -14,7 +14,7 @@
       }
     ]
   },
-  "pillColor": "#b1dd8c",
+  "pillColor": "#0042aa",
   "live": {
     "enabled": true,
     "status": "live",
