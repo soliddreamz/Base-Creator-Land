@@ -249,8 +249,8 @@ input[type="color"] {
 
 </div>
 </div>
-
-<script src="dashboard.js"></script>
-
+        
+<script src="publisher.js"></script>
+        
 </body>
 </html>
