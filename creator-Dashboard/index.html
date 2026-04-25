@@ -892,7 +892,12 @@ links:linkState,
 backgroundColor:el.backgroundColor.value,
 pillColor:el.pillColor.value,
 contactEmail:el.contactEmail.value,
-contactLabel:el.contactLabel.value
+contactLabel:el.contactLabel.value,
+live:{
+enabled:el.liveEnabled.checked===true,
+status:el.liveStatus.value==="live" ? "live" : "offline",
+watch_url:el.liveWatchUrl.value.trim()
+}
 }
 
 const mg=buildMediaGateway()
