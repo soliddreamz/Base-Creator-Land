@@ -29,15 +29,43 @@ color:var(--text);
 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 .wrap{max-width:720px;margin:0 auto;padding:20px 16px 100px;}
+.top{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 14px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand img{
+width:44px;height:44px;border-radius:12px;object-fit:cover;
+border:1px solid var(--stroke);background:#000;
+}
+.brand .name{font-weight:800;font-size:17px;}
+.hero{
+margin:8px 0 18px;border-radius:18px;border:1px solid var(--stroke);
+background:rgba(255,255,255,0.03);overflow:hidden;
+}
+.hero img{width:100%;display:block;}
 .card{
 border:1px solid var(--stroke);background:var(--card);
 border-radius:18px;padding:16px;margin:16px 0;
 }
+.h1{font-size:18px;font-weight:800;margin:0 0 6px;}
+.p{margin:0;color:var(--muted);font-size:13px;}
+.hidden{display:none!important}
 .btn{
 display:inline-flex;align-items:center;justify-content:center;
 width:100%;height:42px;border-radius:999px;border:none;
 background:var(--pillColor);color:#fff;font-weight:700;text-decoration:none;
-margin-top:12px;
+cursor:pointer;margin-top:12px;
+}
+.tabs{
+position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);
+backdrop-filter:blur(12px);border-top:1px solid var(--stroke);padding:10px 12px;
+}
+.tabrow{max-width:720px;margin:0 auto;display:flex;gap:10px;}
+.tab{
+flex:1;border:1px solid var(--stroke);background:rgba(255,255,255,0.05);
+color:var(--muted);padding:10px;border-radius:14px;font-size:13px;text-align:center;
+cursor:pointer;
+}
+.tab.active{
+color:var(--text);background:rgba(255,255,255,0.12);
 }
 </style>
 </head>
@@ -46,66 +74,141 @@ margin-top:12px;
 
 <div class="wrap">
 
-<div class="card">
-<h1 id="name"></h1>
-<p id="bio"></p>
-<div id="connectMount"></div>
+<div class="top">
+  <div class="brand">
+    <img id="logo" src="icons/icon-192-v37.png?v=1777139877986">
+    <div class="name" id="name">Creator</div>
+  </div>
 </div>
 
-<div class="card">
-<p id="liveStatus"></p>
-<a id="liveBtn" class="btn" href="./live.html">Watch Live</a>
+<div class="hero">
+  <img id="heroImg" src="icons/icon-512-v37.png?v=1777139877986">
 </div>
 
+<section id="view-home">
+  <div class="card">
+    <div class="h1">Home</div>
+    <p class="p" id="bio"></p>
+    <div id="connectMount"></div>
+  </div>
+</section>
+
+<section id="view-media" class="hidden">
+  <div id="mediaSection"></div>
+</section>
+
+<section id="view-links" class="hidden">
+  <div class="card">
+    <div id="links"></div>
+  </div>
+</section>
+
+<section id="view-live" class="hidden">
+  <div class="card">
+    <div class="h1">Live</div>
+    <p class="p" id="liveStatus"></p>
+    <a id="liveBtn" class="btn" href="./live.html">Watch Live</a>
+  </div>
+</section>
+
 </div>
+
+<nav class="tabs">
+  <div class="tabrow">
+    <div class="tab active" data-id="home">Home</div>
+    <div class="tab" data-id="media">Media</div>
+    <div class="tab" data-id="links">Links</div>
+    <div class="tab" data-id="live">Live</div>
+  </div>
+</nav>
 
 <script>
 
-function applyState(d){
+const CONTENT_URL="./content.json"
+const POLL_INTERVAL=15000
+let previewMode=false
 
-if(!d) return;
-
-// BASIC
-document.getElementById("name").textContent = d.name || "";
-document.getElementById("bio").textContent = d.bio || "";
-
-// ✅ FIX: COLORS
-document.documentElement.style.setProperty('--pillColor', d.pillColor || "#000");
-
-if(d.backgroundColor){
-document.body.style.background = d.backgroundColor;
+const views={
+home:document.getElementById("view-home"),
+media:document.getElementById("view-media"),
+links:document.getElementById("view-links"),
+live:document.getElementById("view-live")
 }
 
-// ✅ FIX: EMAIL BUTTON
-const mount = document.getElementById("connectMount");
-mount.innerHTML = "";
+document.querySelectorAll(".tab").forEach(t=>{
+t.onclick=()=>setView(t.dataset.id)
+})
 
+function setView(id){
+Object.keys(views).forEach(k=>{
+views[k].classList.toggle("hidden",k!==id)
+});
+document.querySelectorAll(".tab").forEach(t=>{
+t.classList.toggle("active",t.dataset.id===id)
+})
+}
+
+function applyState(d){
+if(!d)return;
+
+// TEXT
+document.getElementById("name").textContent=d.name||"";
+document.getElementById("bio").textContent=d.bio||"";
+
+// COLORS (RESTORED)
+document.documentElement.style.setProperty('--pillColor',d.pillColor||"#000");
+
+if(d.backgroundColor){
+document.body.style.background=d.backgroundColor;
+}
+
+// EMAIL (RESTORED)
+const mount=document.getElementById("connectMount");
+mount.innerHTML="";
 if(d.contactEmail){
-const a = document.createElement("a");
-a.className = "btn";
-a.href = `mailto:${d.contactEmail}`;
-a.textContent = d.contactLabel || "Connect";
+const a=document.createElement("a");
+a.className="btn";
+a.href=`mailto:${d.contactEmail}`;
+a.textContent=d.contactLabel||"Connect";
 mount.appendChild(a);
 }
 
-// ✅ LIVE
-const liveStatus = document.getElementById("liveStatus");
-
+// LIVE
+const liveStatus=document.getElementById("liveStatus");
 if(d.live && d.live.enabled){
-liveStatus.textContent = d.live.status === "live" ? "Live now" : "Offline";
+liveStatus.textContent=d.live.status==="live"?"Live now":"Offline";
 }else{
-liveStatus.textContent = "Unavailable";
+liveStatus.textContent="Unavailable";
+}
 }
 
-}
-
-// PREVIEW SUPPORT
+// 🔴 PREVIEW BRIDGE (RESTORED FROM ZIP)
 window.addEventListener("message",(event)=>{
-const msg = event.data;
-if(msg && msg.type === "BASE_PREVIEW"){
+const msg=event.data;
+if(!msg)return;
+if(msg.type==="BASE_PREVIEW"){
+previewMode=true;
 applyState(msg.payload);
 }
 });
+
+async function fetchState(){
+if(previewMode)return;
+const url=new URL(CONTENT_URL,location.href);
+url.searchParams.set("ts",Date.now());
+const res=await fetch(url.toString(),{cache:"no-store"});
+return res.json();
+}
+
+async function tick(){
+try{
+const state=await fetchState();
+applyState(state);
+}catch(e){}
+}
+
+tick();
+setInterval(tick,POLL_INTERVAL);
 
 </script>
 
