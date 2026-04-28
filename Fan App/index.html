@@ -6,11 +6,11 @@
 
 <title>DJ MOFIYA</title>
 
-<link rel="manifest" href="manifest.json?v=1777403289017">
+<link rel="manifest" href="manifest.json?v=1777400021770">
 <meta name="theme-color" content="#000000">
-<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512-v37.png?v=1777403289017">
-<link rel="shortcut icon" type="image/png" href="icons/icon-192-v37.png?v=1777403289017">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v37.png?v=1777403289017">
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512-v37.png?v=1777400021770">
+<link rel="shortcut icon" type="image/png" href="icons/icon-192-v37.png?v=1777400021770">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v37.png?v=1777400021770">
 
 <style>
 :root{
@@ -67,6 +67,38 @@ cursor:pointer;
 .tab.active{
 color:var(--text);background:rgba(255,255,255,0.12);
 }
+
+/* RESTORED LINK/MEDIA DISPLAY LAYER FROM ZIP */
+.card,.media-card,.row,.pill,.media-btn,.btn,.tab{
+-webkit-tap-highlight-color:transparent;
+}
+.media-card{
+border:1px solid var(--stroke);background:var(--card);
+border-radius:18px;padding:16px;margin:16px 0;display:flex;flex-direction:column;
+}
+.row{
+display:flex;align-items:center;justify-content:space-between;gap:14px;
+border:1px solid var(--stroke);background:rgba(255,255,255,0.04);
+border-radius:16px;padding:14px;margin:14px 0;text-decoration:none;color:inherit;
+}
+.left{display:flex;flex-direction:column;gap:4px;}
+.label{font-weight:700;font-size:14px;}
+.hint{color:var(--muted);font-size:12px;}
+.pill,.media-btn{
+height:34px;display:inline-flex;align-items:center;justify-content:center;
+padding:0 16px;border-radius:999px;background:var(--pillColor);
+color:#fff;font-size:13px;font-weight:600;text-decoration:none;
+}
+.section-title{font-weight:700;font-size:16px;margin:20px 4px 12px;}
+.media-thumb{
+width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:12px;
+border:1px solid var(--stroke);background:rgba(255,255,255,0.04);
+}
+.media-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.media-title{font-weight:700;font-size:15px;margin-bottom:4px;}
+.media-desc{font-size:13px;color:var(--muted);margin-bottom:12px;}
+.media-btn{margin-left:auto;}
+.media-locked{opacity:.6;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);}
 </style>
 </head>
 
@@ -76,13 +108,13 @@ color:var(--text);background:rgba(255,255,255,0.12);
 
 <div class="top">
   <div class="brand">
-    <img id="logo" src="icons/icon-192-v37.png?v=1777403289017">
+    <img id="logo" src="icons/icon-192-v37.png?v=1777400021770">
     <div class="name" id="name">Creator</div>
   </div>
 </div>
 
 <div class="hero">
-  <img id="heroImg" src="icons/icon-512-v37.png?v=1777403289017">
+  <img id="heroImg" src="icons/icon-512-v37.png?v=1777400021770">
 </div>
 
 <section id="view-home">
@@ -127,6 +159,9 @@ color:var(--text);background:rgba(255,255,255,0.12);
 const CONTENT_URL="./content.json"
 const POLL_INTERVAL=15000
 let previewMode=false
+
+function safeURL(url){if(!url)return"";try{const u=new URL(url);if(u.protocol==="http:"||u.protocol==="https:"||u.protocol==="mailto:")return u.href}catch(e){}return""}
+function normalizeURL(url){if(!url)return"";if(url.includes("dropbox.com")){url=url.replace("www.dropbox.com","dl.dropboxusercontent.com").replace("?dl=0","").replace("&dl=0","")}if(url.includes("drive.google.com")){url=url.replace("/view","/preview")}return url}
 
 const views={
 home:document.getElementById("view-home"),
@@ -181,67 +216,90 @@ liveStatus.textContent=d.live.status==="live"?"Live now":"Offline";
 liveStatus.textContent="Unavailable";
 }
 
-// 🔥 LAYER 3 — LINKS (ADDED)
+// LINKS + MEDIA LAYERS RESTORED
 renderLinks(d);
-
-// 🔥 LAYER 4 — MEDIA (ADDED)
 renderMedia(d);
 }
 
-/* 🔥 ADDED: LINKS RENDER */
 function renderLinks(d){
 const container=document.getElementById("links");
 container.innerHTML="";
 const links=Array.isArray(d.links)?d.links:[];
 links.forEach(item=>{
-if(!item || !item.url) return;
-
+const url=safeURL(item.url);
+if(!url)return;
 const a=document.createElement("a");
 a.className="row";
-a.href=item.url;
+a.href=url;
 a.target="_blank";
-
+a.rel="noopener";
 const left=document.createElement("div");
-left.innerHTML=`<div class="label">${item.label||"Link"}</div>`;
-
+left.className="left";
+const label=document.createElement("div");
+label.className="label";
+label.textContent=item.label||"Link";
+const hint=document.createElement("div");
+hint.className="hint";
+const domain=new URL(url).hostname.replace(/^www\./,"");
+hint.textContent=domain+"/";
+left.appendChild(label);
+left.appendChild(hint);
 const pill=document.createElement("div");
 pill.className="pill";
 pill.textContent="Open";
-
 a.appendChild(left);
 a.appendChild(pill);
-container.appendChild(a);
-});
+container.appendChild(a)
+})
 }
 
-/* 🔥 ADDED: MEDIA RENDER */
 function renderMedia(d){
 const container=document.getElementById("mediaSection");
 container.innerHTML="";
-if(!d.mediaGateway || !d.mediaGateway.enabled) return;
-
-(d.mediaGateway.collections||[]).forEach(collection=>{
-(collection.items||[]).forEach(item=>{
+if(!d.mediaGateway||!d.mediaGateway.enabled)return;
+const collections=d.mediaGateway.collections||[];
+collections.forEach(collection=>{
+const title=document.createElement("div");
+title.className="section-title";
+title.textContent=collection.title;
+container.appendChild(title);
+collection.items.forEach(item=>{
 const card=document.createElement("div");
-card.className="card";
-
-card.innerHTML=`
-<div class="h1">${item.title||""}</div>
-<p class="p">${item.description||""}</p>
-`;
-
-if(item.access==="public" && item.url){
-const a=document.createElement("a");
-a.className="btn";
-a.href=item.url;
-a.target="_blank";
-a.textContent="Open";
-card.appendChild(a);
+card.className="media-card";
+if(item.thumbnail){
+const thumb=document.createElement("div");
+thumb.className="media-thumb";
+const img=document.createElement("img");
+img.src=normalizeURL(item.thumbnail);
+img.onload=()=>{thumb.appendChild(img);card.insertBefore(thumb,card.firstChild)}
 }
-
-container.appendChild(card);
-});
-});
+const t=document.createElement("div");
+t.className="media-title";
+t.textContent=item.title||"";
+card.appendChild(t);
+if(item.description){
+const desc=document.createElement("div");
+desc.className="media-desc";
+desc.textContent=item.description;
+card.appendChild(desc)
+}
+if(item.access==="public"&&item.url){
+const btn=document.createElement("a");
+btn.className="media-btn";
+btn.href=safeURL(item.url);
+btn.target="_blank";
+btn.rel="noopener";
+btn.textContent="Open";
+card.appendChild(btn)
+}else{
+const locked=document.createElement("div");
+locked.className="media-btn media-locked";
+locked.textContent="Locked";
+card.appendChild(locked)
+}
+container.appendChild(card)
+})
+})
 }
 
 // 🔴 PREVIEW BRIDGE (RESTORED FROM ZIP)
