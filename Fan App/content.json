@@ -1,10 +1,19 @@
 {
   "name": "DJ MOFIYA",
-  "bio": "jhsfkjhljsfbfsfssf",
-  "links": [],
-  "backgroundColor": "#5e30eb",
+  "bio": "Music, live sessions, bookings & more   Tap below to reach me",
+  "links": [
+    {
+      "label": "Instagram",
+      "url": "https://www.instagram.com/djmofiya/"
+    },
+    {
+      "label": "Youtube",
+      "url": "https://www.youtube.com/@DjMoFiya"
+    }
+  ],
+  "backgroundColor": "#000000",
   "contactEmail": "bookdjmofiya@gmail.com",
-  "contactLabel": "Connect",
+  "contactLabel": "Email",
   "mediaGateway": {
     "enabled": true,
     "collections": [
@@ -14,7 +23,7 @@
       }
     ]
   },
-  "pillColor": "#d357fe",
+  "pillColor": "#e32400",
   "live": {
     "enabled": true,
     "status": "live",
